@@ -27,12 +27,14 @@ scfres.conv_tol = 1e-8
 scfres.conv_tol_grad = 1e-8
 scfres.kernel()
 
+refstate = adcc.ReferenceState(scfres)
+
 omegas = np.linspace(0.08, 0.12, 50)
 gamma = 1e-4
 
 all_pol = [
     compute_complex_polarizability(
-        "adc2", scfres, omega=w, gamma=gamma
+        "adc2", refstate, omega=w, gamma=gamma
     )
     for w in omegas
 ]

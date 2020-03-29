@@ -22,13 +22,12 @@ from .cpp_algebra import ComplexPolarizationPropagatorMatrix as CppMatrix
 _comps = ['x', 'y', 'z']
 
 
-def compute_static_polarizability(matrix_method, scfres, **solver_args):
+def compute_static_polarizability(matrix_method, reference_state, **solver_args):
     """
     Compute the static polarizability of the electronic
     ground state. Tensor is returned in alphabetical ordering
     (xx, xy, xz, yy, yz, zz)
     """
-    reference_state = ReferenceState(scfres)
     dips = reference_state.operators.electric_dipole
     ground_state = LazyMp(reference_state)
     matrix = AdcMatrix(matrix_method, ground_state)
@@ -62,7 +61,7 @@ def compute_static_polarizability(matrix_method, scfres, **solver_args):
     return polarizability
 
 
-def compute_complex_polarizability(matrix_method, scfres, omega=0.0, gamma=0.0,
+def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, gamma=0.0,
                                    solver=conjugate_gradient,
                                    **solver_args):
     """
@@ -71,7 +70,6 @@ def compute_complex_polarizability(matrix_method, scfres, omega=0.0, gamma=0.0,
     (xx, xy, xz, yy, yz, zz)
     """
     # TODO: allow for multiple frequencies from outside, multi-frequency solver
-    reference_state = ReferenceState(scfres)
     dips = reference_state.operators.electric_dipole
     ground_state = LazyMp(reference_state)
     matrix = AdcMatrix(matrix_method, ground_state)
@@ -120,10 +118,10 @@ def compute_complex_polarizability(matrix_method, scfres, omega=0.0, gamma=0.0,
         polarizability_real_cg[c] = sol1.real @ rhss[comp[0]] + sol2.real @ rhss[comp[0]]
         polarizability_imag_cg[c] = sol1.imag @ rhss[comp[0]] - sol2.imag @ rhss[comp[0]]
     # TODO: return as complex numpy array
-    return (polarizability_real_cg, polarizability_imag_cg)
+    return polarizability_real_cg, polarizability_imag_cg
 
 
-def compute_c6_dispersion_coefficient(matrix_method, scfres, **solver_args):
+def compute_c6_dispersion_coefficient(matrix_method, reference_state, **solver_args):
     """
     Compute the ground state C6 dispersion coefficient by quadrature
     """
@@ -135,7 +133,7 @@ def compute_c6_dispersion_coefficient(matrix_method, scfres, **solver_args):
 
     for w in freqs:
         re, im = compute_complex_polarizability(
-            matrix_method, scfres, omega=0.0, gamma=w, **solver_args
+            matrix_method, reference_state, omega=0.0, gamma=w, **solver_args
         )
         alphas_iso.append(
             1.0 / 3.0 * (re[0] + re[3] + re[5])

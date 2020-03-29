@@ -36,6 +36,7 @@ scfres.kernel()
 state = adcc.adc2(scfres, n_singlets=nstates, conv_tol=1e-6)
 print(state.describe(transition_dipole_moments=True, state_dipole_moments=True))
 
+refstate = adcc.ReferenceState(scfres)
 
 soi = 2
 omega = 0.9
@@ -48,10 +49,10 @@ alpha_c_sos = sos_complex_polarizability(state, omegas=[omega], gamma=gamma)
 
 # Response Solvers
 alpha_c = compute_complex_polarizability(
-    "adc2", scfres, omega=omega, gamma=gamma, conv_tol=1e-8
+    "adc2", refstate, omega=omega, gamma=gamma, conv_tol=1e-8
 )
 
-c6 = compute_c6_dispersion_coefficient("adc2", scfres, conv_tol=1e-8)
+c6 = compute_c6_dispersion_coefficient("adc2", refstate, conv_tol=1e-8)
 
 alpha_0 = compute_static_polarizability(
     "adc2", scfres, conv_tol=1e-8, diis=True, max_error_vectors=10

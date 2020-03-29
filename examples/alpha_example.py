@@ -26,9 +26,11 @@ scfres.conv_tol = 1e-8
 scfres.conv_tol_grad = 1e-8
 scfres.kernel()
 
+refstate = adcc.ReferenceState(scfres)
+
 nstates = 3
 state = adcc.adc2(scfres, n_singlets=nstates, conv_tol=1e-6)
 
 alpha_0 = compute_static_polarizability(
-    "adc2", scfres, conv_tol=1e-6, diis=True, max_error_vectors=10
+    "adc2", refstate, conv_tol=1e-6, diis=True, max_error_vectors=10
 ).reshape(1, 6)
