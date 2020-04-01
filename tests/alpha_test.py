@@ -43,7 +43,7 @@ omega = 0.9
 gamma = 0.001
 
 # SOS
-alpha_0_sos = sos_static_polarizability(state).reshape(1, 6)
+alpha_0_sos = sos_static_polarizability(state)
 c6_sos = sos_c6(state)
 alpha_c_sos = sos_complex_polarizability(state, omegas=[omega], gamma=gamma)
 
@@ -55,11 +55,10 @@ alpha_c = compute_complex_polarizability(
 c6 = compute_c6_dispersion_coefficient("adc2", refstate, conv_tol=1e-8)
 
 alpha_0 = compute_static_polarizability(
-    "adc2", scfres, conv_tol=1e-8, diis=True, max_error_vectors=10
-).reshape(1, 6)
+    "adc2", refstate, conv_tol=1e-8, diis=True, max_error_vectors=10
+)
 
-np.testing.assert_allclose(alpha_c_sos.real.flatten(), alpha_c[0], atol=1e-7)
-np.testing.assert_allclose(alpha_c_sos.imag.flatten(), alpha_c[1], atol=1e-7)
+np.testing.assert_allclose(alpha_c_sos[0], alpha_c, atol=1e-7)
 
 np.testing.assert_allclose(alpha_0_sos, alpha_0, atol=1e-7)
 

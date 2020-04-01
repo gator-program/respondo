@@ -25,8 +25,7 @@ _comps = ['x', 'y', 'z']
 def compute_static_polarizability(matrix_method, reference_state, **solver_args):
     """
     Compute the static polarizability of the electronic
-    ground state. Tensor is returned in alphabetical ordering
-    (xx, xy, xz, yy, yz, zz)
+    ground state.
     """
     dips = reference_state.operators.electric_dipole
     ground_state = LazyMp(reference_state)
@@ -52,12 +51,11 @@ def compute_static_polarizability(matrix_method, reference_state, **solver_args)
         )
         solutions.append(res.solution)
 
-    # xx, xy, xz, yy, yz, zz
-    components = list(itertools.combinations_with_replacement([0, 1, 2], r=2))
-    polarizability = np.zeros(len(components))
-    for c, comp in enumerate(components):
-        polarizability[c] = 2.0 * solutions[comp[1]] @ rhss[comp[0]]
-    # TODO: return as numpy array with all elements
+    polarizability = np.zeros((3, 3))
+    for c1 in range(3):
+        for c2 in range(c1, 3):
+            polarizability[c1, c2] = 2.0 * solutions[c2] @ rhss[c1]
+            polarizability[c2, c1] = polarizability[c1, c2]
     return polarizability
 
 
@@ -66,8 +64,7 @@ def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, ga
                                    **solver_args):
     """
     Compute the complex frequency-dependent polarizability of the electronic
-    ground state. Tensor is returned in alphabetical ordering
-    (xx, xy, xz, yy, yz, zz)
+    ground state.
     """
     # TODO: allow for multiple frequencies from outside, multi-frequency solver
     dips = reference_state.operators.electric_dipole
@@ -79,7 +76,7 @@ def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, ga
     ]
     cpp_matrix = CppMatrix(matrix, gamma=gamma, omega=omega)
     Pinv = ComplexPolarizationPropagatorPinv(cpp_matrix, shift=omega, gamma=gamma)
-    solutions_cg = []
+    solutions = []
     for mu in range(3):
         rhs = ResponseVector(rhss[mu])
         x0 = Pinv @ rhs
@@ -105,20 +102,25 @@ def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, ga
         )
         cpp_matrix.omega = omega
         Pinv.shift = omega
-        solutions_cg.append((res1.solution, res2.solution))
+        solutions.append((res1.solution, res2.solution))
 
     # xx, xy, xz, yy, yz, zz
     components = list(itertools.combinations_with_replacement([0, 1, 2], r=2))
 
-    polarizability_real_cg = np.zeros(len(components))
-    polarizability_imag_cg = np.zeros(len(components))
-    for c, comp in enumerate(components):
-        sol1 = solutions_cg[comp[1]][0]
-        sol2 = solutions_cg[comp[1]][1]
-        polarizability_real_cg[c] = sol1.real @ rhss[comp[0]] + sol2.real @ rhss[comp[0]]
-        polarizability_imag_cg[c] = sol1.imag @ rhss[comp[0]] - sol2.imag @ rhss[comp[0]]
-    # TODO: return as complex numpy array
-    return polarizability_real_cg, polarizability_imag_cg
+    polarizability = np.zeros((3, 3), dtype=np.complex)
+    for c1 in range(3):
+        for c2 in range(c1, 3):
+            sol1 = solutions[c2][0]
+            sol2 = solutions[c2][1]
+            polarizability.real[c1, c2] = sol1.real @ rhss[c1] + sol2.real @ rhss[c1]
+            polarizability.imag[c1, c2] = sol1.imag @ rhss[c1] - sol2.imag @ rhss[c1]
+            polarizability[c2, c1] = polarizability[c1, c2]
+    return polarizability
+
+
+def one_photon_absorption_cross_section(polarizability, omegas):
+    isotropic_avg_im_alpha = 1.0 / 3.0 * np.trace(polarizability.imag, axis1=1, axis2=2)
+    return 4.0 * np.pi / 137.0 * omegas * isotropic_avg_im_alpha
 
 
 def compute_c6_dispersion_coefficient(matrix_method, reference_state, **solver_args):
@@ -132,11 +134,11 @@ def compute_c6_dispersion_coefficient(matrix_method, reference_state, **solver_a
     alphas_iso = []
 
     for w in freqs:
-        re, im = compute_complex_polarizability(
+        pol = compute_complex_polarizability(
             matrix_method, reference_state, omega=0.0, gamma=w, **solver_args
         )
         alphas_iso.append(
-            1.0 / 3.0 * (re[0] + re[3] + re[5])
+            1.0 / 3.0 * np.trace(pol.real)
         )
     alphas_iso = np.array(alphas_iso)
     derivative = w0 * 2 / (1 + points)**2
