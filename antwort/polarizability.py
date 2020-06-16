@@ -1,8 +1,9 @@
-from adcc import AdcMatrix, LazyMp, ReferenceState
+from adcc import AdcMatrix, LazyMp
 
 import numpy as np
 
-from adcc.modified_transition_moments import compute_modified_transition_moments
+from adcc.modified_transition_moments import \
+    compute_modified_transition_moments
 
 from adcc.solver.conjugate_gradient import default_print
 from adcc.solver.preconditioner import JacobiPreconditioner
@@ -11,14 +12,14 @@ from adcc.solver.conjugate_gradient import conjugate_gradient
 
 from .cpp_algebra import (ResponseVector,
                           ComplexPolarizationPropagatorPinv,
-                          jacobi,
                           ResponseVectorSymmetrisation)
 from .cpp_algebra import ComplexPolarizationPropagatorMatrix as CppMatrix
 
 _comps = ['x', 'y', 'z']
 
 
-def compute_static_polarizability(matrix_method, reference_state, **solver_args):
+def compute_static_polarizability(matrix_method, reference_state,
+                                  **solver_args):
     """
     Compute the static polarizability of the electronic
     ground state.
@@ -55,7 +56,8 @@ def compute_static_polarizability(matrix_method, reference_state, **solver_args)
     return polarizability
 
 
-def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, gamma=0.0,
+def compute_complex_polarizability(matrix_method, reference_state,
+                                   omega=0.0, gamma=0.0,
                                    solver=conjugate_gradient,
                                    **solver_args):
     """
