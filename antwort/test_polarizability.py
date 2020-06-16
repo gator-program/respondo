@@ -20,7 +20,7 @@ from antwort.sos import (
 )
 
 
-class TestPolarizabilities(unittest.TestCase):
+class TestPolarizability(unittest.TestCase):
     def test_h2o_sto3g_adc2_fulldiag(self):
         mol = gto.M(
             atom="O 0 0 0;"
