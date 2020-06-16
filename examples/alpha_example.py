@@ -32,6 +32,6 @@ nstates = 3
 state = adcc.adc2(scfres, n_singlets=nstates, conv_tol=1e-6)
 
 alpha_0 = compute_static_polarizability(
-    "adc2", refstate, conv_tol=1e-6, diis=True, max_error_vectors=10
+    "adc2", refstate, conv_tol=1e-6
 )
 print(alpha_0)

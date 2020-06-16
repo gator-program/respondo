@@ -1,5 +1,3 @@
-import itertools
-
 from adcc import AdcMatrix, LazyMp, ReferenceState
 
 import numpy as np
@@ -9,15 +7,13 @@ from adcc.modified_transition_moments import compute_modified_transition_moments
 from adcc.solver.conjugate_gradient import default_print
 from adcc.solver.preconditioner import JacobiPreconditioner
 from adcc.solver import IndexSymmetrisation
-
-from .utils import jacobi
+from adcc.solver.conjugate_gradient import conjugate_gradient
 
 from .cpp_algebra import (ResponseVector,
                           ComplexPolarizationPropagatorPinv,
-                          conjugate_gradient,
+                          jacobi,
                           ResponseVectorSymmetrisation)
 from .cpp_algebra import ComplexPolarizationPropagatorMatrix as CppMatrix
-
 
 _comps = ['x', 'y', 'z']
 
@@ -44,7 +40,7 @@ def compute_static_polarizability(matrix_method, reference_state, **solver_args)
         rhs = rhss[mu]
         x0 = preconditioner.apply(rhs)
         print(f"Solving response equation for component {_comps[mu]}.")
-        res = jacobi(
+        res = conjugate_gradient(
             matrix, rhs=rhs, x0=x0, callback=default_print,
             explicit_symmetrisation=explicit_symmetrisation,
             **solver_args
@@ -81,7 +77,7 @@ def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, ga
         rhs = ResponseVector(rhss[mu])
         x0 = Pinv @ rhs
         rsymm = ResponseVectorSymmetrisation(matrix)
-        guess_symm = rsymm.symmetrise(x0, rhs)
+        guess_symm = rsymm.symmetrise(x0)
 
         cpp_matrix.omega = omega
         Pinv.shift = omega
@@ -104,9 +100,6 @@ def compute_complex_polarizability(matrix_method, reference_state, omega=0.0, ga
         Pinv.shift = omega
         solutions.append((res1.solution, res2.solution))
 
-    # xx, xy, xz, yy, yz, zz
-    components = list(itertools.combinations_with_replacement([0, 1, 2], r=2))
-
     polarizability = np.zeros((3, 3), dtype=np.complex)
     for c1 in range(3):
         for c2 in range(c1, 3):
@@ -127,7 +120,6 @@ def compute_c6_dispersion_coefficient(matrix_method, reference_state, **solver_a
     """
     Compute the ground state C6 dispersion coefficient by quadrature
     """
-
     points, weights = np.polynomial.legendre.leggauss(12)
     w0 = 0.3
     freqs = w0 * (1 - points) / (1 + points)

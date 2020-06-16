@@ -55,7 +55,7 @@ alpha_c = compute_complex_polarizability(
 c6 = compute_c6_dispersion_coefficient("adc2", refstate, conv_tol=1e-8)
 
 alpha_0 = compute_static_polarizability(
-    "adc2", refstate, conv_tol=1e-8, diis=True, max_error_vectors=10
+    "adc2", refstate, conv_tol=1e-8
 )
 
 np.testing.assert_allclose(alpha_c_sos[0], alpha_c, atol=1e-7)
