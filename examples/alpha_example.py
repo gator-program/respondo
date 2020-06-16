@@ -5,7 +5,7 @@ Compute static polarizabilities in adcc
 import adcc
 from pyscf import gto, scf
 
-from antwort import compute_static_polarizability
+from antwort import static_polarizability
 
 mol = gto.M(
     atom="O 0 0 0;"
@@ -25,5 +25,5 @@ refstate = adcc.ReferenceState(scfres)
 nstates = 3
 state = adcc.adc2(scfres, n_singlets=nstates, conv_tol=1e-6)
 
-alpha_0 = compute_static_polarizability("adc2", refstate, conv_tol=1e-6)
+alpha_0 = static_polarizability("adc2", refstate, conv_tol=1e-6)
 print(alpha_0)

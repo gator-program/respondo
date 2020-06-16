@@ -21,9 +21,7 @@ from .cpp_algebra import ComplexPolarizationPropagatorMatrix as CppMatrix
 _comps = ["x", "y", "z"]
 
 
-def compute_static_polarizability(
-    matrix_method, reference_state, **solver_args
-):
+def static_polarizability(matrix_method, reference_state, **solver_args):
     """
     Compute the static polarizability of the electronic
     ground state.
@@ -63,7 +61,7 @@ def compute_static_polarizability(
     return polarizability
 
 
-def compute_complex_polarizability(
+def complex_polarizability(
     matrix_method,
     reference_state,
     omega=0.0,
@@ -143,9 +141,7 @@ def one_photon_absorption_cross_section(polarizability, omegas):
     return 4.0 * np.pi / 137.0 * omegas * isotropic_avg_im_alpha
 
 
-def compute_c6_dispersion_coefficient(
-    matrix_method, reference_state, **solver_args
-):
+def c6_dispersion_coefficient(matrix_method, reference_state, **solver_args):
     """
     Compute the ground state C6 dispersion coefficient by quadrature
     """
@@ -155,7 +151,7 @@ def compute_c6_dispersion_coefficient(
     alphas_iso = []
 
     for w in freqs:
-        pol = compute_complex_polarizability(
+        pol = complex_polarizability(
             matrix_method, reference_state, omega=0.0, gamma=w, **solver_args
         )
         alphas_iso.append(1.0 / 3.0 * np.trace(pol.real))
