@@ -9,7 +9,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from antwort import compute_complex_polarizability
+from antwort import complex_polarizability
 from antwort.polarizability import one_photon_absorption_cross_section
 
 
@@ -34,7 +34,7 @@ omegas = np.linspace(0.59, 0.61, 30)
 gamma = 1e-3
 
 all_pol = [
-    compute_complex_polarizability(
+    complex_polarizability(
         "adc2", refstate, omega=w, gamma=gamma, conv_tol=1e-3
     )
     for w in omegas

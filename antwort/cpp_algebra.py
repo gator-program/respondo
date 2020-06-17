@@ -1,23 +1,23 @@
-import sys
 import scipy.linalg as la
 import numpy as np
 
-from adcc.functions import dot, zeros_like, empty_like, ones_like, multiply, divide
-from adcc.solver.preconditioner import PreconditionerIdentity
+from adcc.functions import zeros_like, empty_like, ones_like
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 from adcc import AmplitudeVector
 from adcc import copy
+from adcc.solver.conjugate_gradient import State
+from adcc.functions import evaluate
 
 
 class ResponseVectorSymmetrisation:
     def __init__(self, adcmatrix):
         self.isymm = IndexSymmetrisation(adcmatrix)
 
-    def symmetrise(self, x0, tmp):
+    def symmetrise(self, x0):
         real = x0.real
         imag = x0.imag
-        self.isymm.symmetrise([real], [tmp.real])
-        self.isymm.symmetrise([imag], [tmp.imag])
+        real = self.isymm.symmetrise(real)
+        imag = self.isymm.symmetrise(imag)
         return ResponseVector(real, imag)
 
 
@@ -59,6 +59,11 @@ class ResponseVector:
     def copy(self):
         return ResponseVector(copy(self.real), copy(self.imag))
 
+    def evaluate(self):
+        self.real.evaluate()
+        self.imag.evaluate()
+        return self
+
 
 class ComplexPolarizationPropagatorMatrix:
     """
@@ -66,6 +71,7 @@ class ComplexPolarizationPropagatorMatrix:
     (M-w    gamma  )
     (gamma  -(M-w) )
     """
+
     def __init__(self, adcmatrix, omega=0, gamma=0):
         self.M = adcmatrix
         self.omega = omega
@@ -77,134 +83,163 @@ class ComplexPolarizationPropagatorMatrix:
 
     @property
     def approximate_diagonal(self):
-        diagonal_real = AmplitudeVector(*tuple(
-            self.M.diagonal(block) for block in self.M.blocks
-        ))
+        diagonal_real = AmplitudeVector(
+            *tuple(self.M.diagonal(block) for block in self.M.blocks)
+        )
         diagonal_imag = -1.0 * diagonal_real
         return ResponseVector(diagonal_real, diagonal_imag)
 
     def __matmul__(self, invec):
-        real = self.M @ invec.real - self.omega * invec.real + self.gamma * invec.imag
-        imag = self.gamma * invec.real - self.M @ invec.imag + self.omega * invec.imag
+        real = (
+            self.M @ invec.real
+            - self.omega * invec.real
+            + self.gamma * invec.imag
+        )
+        imag = (
+            self.gamma * invec.real
+            - self.M @ invec.imag
+            + self.omega * invec.imag
+        )
         ret = ResponseVector(real, imag)
         return ret
 
 
-class CppSolverState:
-    def __init__(self):
-        self.solution = None             # Current approximation to the solution
-        self.residual = None             # Current residual
-        self.residual_norm = None        # Current residual norm
-        self.all_residual_norms = []
-        self.converged = False           # Flag whether iteration is converged
-        self.n_iter = 0                  # Number of iterations
-        self.n_applies = 0               # Number of applies
-
-
-def default_print(state, identifier, file=sys.stdout):
-    if identifier == "start" and state.n_iter == 0:
-        print("Niter residual_norm", file=file)
-    elif identifier == "next_iter":
-        fmt = "{n_iter:3d}  {residual:12.5g}"
-        print(fmt.format(n_iter=state.n_iter,
-                         residual=np.max(state.residual_norm)), file=file)
-    elif identifier == "is_converged":
-        print("=== Converged ===", file=file)
-        print("    Number of matrix applies:   ", state.n_applies)
-
-
-def conjugate_gradient(matrix, rhs, x0=None, conv_tol=1e-9, max_iter=100,
-                       callback=None, Pinv=None, cg_type="polak_ribiere",
-                       explicit_symmetrisation=IndexSymmetrisation):
-    """An implementation of the conjugate gradient algorithm.
-
-    This algorithm implements the "flexible" conjugate gradient using the
-    Polak-Ribière formula, but allows to employ the "traditional"
-    Fletcher-Reeves formula as well.
-    It solves `matrix @ x = rhs` for `x` by minimising the residual
-    `matrix @ x - rhs`.
-
-    Parameters
-    ----------
-    matrix
-        Matrix object. Should be an ADC matrix.
-    rhs
-        Right-hand side, source.
-    x0
-        Initial guess
-    conv_tol : float
-        Convergence tolerance on the l2 norm of residuals to consider
-        them converged.
-    max_iter : int
-        Maximum number of iterations
-    callback
-        Callback to call after each iteration
-    Pinv
-        Preconditioner to A, typically an estimate for A^{-1}
-    cg_type : string
-        Identifier to select between polak_ribiere and fletcher_reeves
-    explicit_symmetrisation
-        Explicit symmetrisation to perform during iteration to ensure
-        obtaining an eigenvector with matching symmetry criteria.
+class ComplexPolarizationPropagatorPinv:
     """
+    Pseudo-inverse for the CPP Matrix
+    """
+
+    def __init__(self, matrix, shift, gamma, projection=None):
+        self.shift = shift
+        self.gamma = gamma
+        self.matrix = matrix
+        self.adcmatrix = self.matrix.M
+        self.diagonal = AmplitudeVector(
+            *tuple(
+                self.adcmatrix.diagonal(block)
+                for block in self.adcmatrix.blocks
+            )
+        )
+        self.projection = projection
+
+    def __matmul__(self, invec):
+        eps = 0
+        shifted_diagonal = self.diagonal - (self.shift - eps) * ones_like(
+            self.diagonal
+        )
+
+        gamma_diagonal = self.gamma * ones_like(self.diagonal)
+        test = shifted_diagonal * shifted_diagonal
+
+        inverse_diagonal = -1.0 * test - (self.gamma * self.gamma) * ones_like(
+            self.diagonal
+        )
+        real_prec = (
+            -1.0 * shifted_diagonal * invec.real
+            - 1.0 * gamma_diagonal * invec.imag
+        )
+        imag_prec = (
+            -1.0 * gamma_diagonal * invec.real + shifted_diagonal * invec.imag
+        )
+
+        outvec = empty_like(invec)
+
+        outvec.real = real_prec / inverse_diagonal
+        outvec.imag = imag_prec / inverse_diagonal
+        if self.projection:
+            outvec -= self.projection(outvec)
+        return outvec
+
+
+# TODO: currently not used, but could be useful for folded ADC(2) CPP
+def jacobi(
+    matrix,
+    rhs,
+    x0=None,
+    conv_tol=1e-9,
+    max_iter=100,
+    callback=None,
+    explicit_symmetrisation=IndexSymmetrisation,
+    diis=False,
+    max_error_vectors=10,
+    projection=None,
+):
+    """An implementation of the Jacobi-DIIS solver"""
     if callback is None:
+
         def callback(state, identifier):
             pass
 
-    if explicit_symmetrisation is not None and \
-            isinstance(explicit_symmetrisation, type):
+    if explicit_symmetrisation is not None and isinstance(
+        explicit_symmetrisation, type
+    ):
         explicit_symmetrisation = explicit_symmetrisation(matrix)
 
-    # The problem size
-    n_problem = matrix.shape[1]
-
     if x0 is None:
-        # Start with random guess
         raise NotImplementedError("Random guess is not yet implemented.")
-        x0 = np.random.rand((n_problem))
     else:
         x0 = copy(x0)
-
-    if Pinv is None:
-        Pinv = PreconditionerIdentity()
-    if Pinv is not None and isinstance(Pinv, type):
-        Pinv = Pinv(matrix)
 
     def is_converged(state):
         state.converged = state.residual_norm < conv_tol
         return state.converged
 
-    state = CppSolverState()
+    state = State()
 
-    # Initialise iterates
+    D = AmplitudeVector(
+        *tuple(matrix.diagonal(block) for block in matrix.blocks)
+    )
+
     state.solution = x0
-    state.residual = rhs - matrix @ state.solution
-    state.n_applies += 1
-    state.residual_norm = np.sqrt(state.residual @ state.residual)
-    pk = zk = Pinv @ state.residual
-
+    old_vec = state.solution.copy()
+    w = matrix @ state.solution
+    state.solution -= (w - rhs) / D
     if explicit_symmetrisation:
-        # TODO Not sure this is the right spot ... also this syntax is ugly
-        pk = explicit_symmetrisation.symmetrise(pk, x0)
+        state.solution = explicit_symmetrisation.symmetrise(state.solution)
+    if projection:
+        state.solution -= projection(state.solution)
+    state.residual = state.solution - old_vec
+
+    residuals = []
+    solutions = []
 
     callback(state, "start")
     while state.n_iter < max_iter:
         state.n_iter += 1
-
-        # Update ak and iterated solution
-        # TODO This needs to be modified for general optimisations,
-        #      i.e. where A is non-linear
-        # https://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
-        Apk = matrix @ pk
         state.n_applies += 1
-        res_dot_zk = dot(state.residual, zk)
-        ak = float(res_dot_zk / dot(pk, Apk))
-        state.solution += ak * pk
 
-        residual_old = state.residual
-        state.residual = residual_old - ak * Apk
+        old_vec = state.solution.copy()
+        w = matrix @ state.solution
+        state.solution -= evaluate((w - rhs) / D)
+        if explicit_symmetrisation:
+            state.solution = explicit_symmetrisation.symmetrise(state.solution)
+        if projection:
+            state.solution -= projection(state.solution)
+        state.residual = evaluate(state.solution - old_vec)
+
         state.residual_norm = np.sqrt(state.residual @ state.residual)
-        state.all_residual_norms.append(state.residual_norm)
+        # DIIS
+        if diis:
+            if len(residuals) >= max_error_vectors:
+                residuals.pop(0)
+                solutions.pop(0)
+            residuals.append(state.residual)
+            solutions.append(state.solution)
+            if len(residuals) >= 3:
+                diis_size = len(residuals) + 1
+                A = np.zeros((diis_size, diis_size))
+                A[:, 0] = -1.0
+                A[0, :] = -1.0
+                # TODO: only compute upper/lower triangle
+                for i, r1 in enumerate(residuals, 1):
+                    for j, r2 in enumerate(residuals, 1):
+                        A[i, j] = r1 @ r2
+                diis_rhs = np.zeros(diis_size)
+                diis_rhs[0] = -1.0
+                weights = np.linalg.solve(A, diis_rhs)[1:]
+                state.solution = zeros_like(state.solution)
+                for i, s in enumerate(solutions):
+                    state.solution += weights[i] * s
 
         callback(state, "next_iter")
         if is_converged(state):
@@ -213,54 +248,9 @@ def conjugate_gradient(matrix, rhs, x0=None, conv_tol=1e-9, max_iter=100,
             return state
 
         if state.n_iter == max_iter:
-            raise la.LinAlgError("Maximum number of iterations (== "
-                                 + str(max_iter) + " reached in conjugate "
-                                 "gradient procedure.")
-
-        zk = Pinv @ state.residual
-
-        if explicit_symmetrisation:
-            # TODO Not sure this is the right spot ... also this syntax is ugly
-            zk = explicit_symmetrisation.symmetrise(zk, pk)
-
-        if cg_type == "fletcher_reeves":
-            bk = float(dot(zk, state.residual) / res_dot_zk)
-        elif cg_type == "polak_ribiere":
-            bk = float(dot(zk, (state.residual - residual_old)) / res_dot_zk)
-        pk = zk + bk * pk
-
-
-class ComplexPolarizationPropagatorPinv:
-    """
-    Pseudo-inverse for the CPP Matrix
-    """
-    def __init__(self, matrix, shift, gamma, projection=None):
-        self.shift = shift
-        self.gamma = gamma
-        self.matrix = matrix
-        self.adcmatrix = self.matrix.M
-        self.diagonal = AmplitudeVector(*tuple(
-            self.adcmatrix.diagonal(block) for block in self.adcmatrix.blocks
-        ))
-        self.projection = projection
-
-    def __matmul__(self, invec):
-        eps = 0
-        shifted_diagonal = (self.diagonal
-                            - (self.shift - eps) * ones_like(self.diagonal))
-
-        gamma_diagonal = self.gamma * ones_like(self.diagonal)
-        test = zeros_like(shifted_diagonal)
-        multiply(shifted_diagonal, shifted_diagonal, test)
-
-        inverse_diagonal = -1.0 * test - (self.gamma * self.gamma) * ones_like(self.diagonal)
-        real_prec = -1.0 * shifted_diagonal * invec.real - 1.0 * gamma_diagonal * invec.imag
-        imag_prec = -1.0 * gamma_diagonal * invec.real + shifted_diagonal * invec.imag
-
-        outvec = empty_like(invec)
-
-        divide(real_prec, inverse_diagonal, outvec.real)
-        divide(imag_prec, inverse_diagonal, outvec.imag)
-        if self.projection:
-            outvec -= self.projection(outvec)
-        return outvec
+            raise la.LinAlgError(
+                "Maximum number of iterations (== "
+                + str(max_iter)
+                + " reached in Jacobi "
+                "procedure."
+            )
