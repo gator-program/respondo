@@ -2,9 +2,7 @@ from adcc import AdcMatrix, LazyMp
 
 import numpy as np
 
-from adcc.modified_transition_moments import (
-    compute_modified_transition_moments,
-)
+from adcc.adc_pp import modified_transition_moments
 
 from adcc.solver.conjugate_gradient import default_print
 from adcc.solver.preconditioner import JacobiPreconditioner
@@ -29,8 +27,15 @@ def static_polarizability(matrix_method, reference_state, **solver_args):
     dips = reference_state.operators.electric_dipole
     ground_state = LazyMp(reference_state)
     matrix = AdcMatrix(matrix_method, ground_state)
+
+    if matrix.method.level < 3:
+        property_method = matrix.method
+    else:
+        # Auto-select second-order properties for third-order calc
+        property_method = matrix.method.at_level(2)
+
     rhss = [
-        compute_modified_transition_moments(matrix, dip, "adc2")
+        modified_transition_moments(property_method, ground_state, dip)
         for dip in dips
     ]
 
@@ -77,8 +82,15 @@ def complex_polarizability(
     dips = reference_state.operators.electric_dipole
     ground_state = LazyMp(reference_state)
     matrix = AdcMatrix(matrix_method, ground_state)
+
+    if matrix.method.level < 3:
+        property_method = matrix.method
+    else:
+        # Auto-select second-order properties for third-order calc
+        property_method = matrix.method.at_level(2)
+
     rhss = [
-        compute_modified_transition_moments(matrix, dip, "adc2")
+        modified_transition_moments(property_method, ground_state, dip)
         for dip in dips
     ]
     cpp_matrix = CppMatrix(matrix, gamma=gamma, omega=omega)
