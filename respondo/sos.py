@@ -1,15 +1,25 @@
+"""
+Sum-Over-States (SOS) Expressions for response functions
+"""
+
+from adcc.adc_pp.state2state_transition_dm import state2state_transition_dm
+from adcc.OneParticleOperator import product_trace
 import numpy as np
+from itertools import permutations, product
+
+
+# TODO: Add latex Sum-Over-States Expressions
 
 
 def sos_static_polarizability(state):
     sos = np.zeros((3, 3))
     for i, dip in enumerate(state.transition_dipole_moment):
-        for c1 in range(3):
-            for c2 in range(c1, 3):
-                sos[c1, c2] += (
-                    2.0 * (dip[c1] * dip[c2]) / state.excitation_energy[i]
+        for A in range(3):
+            for B in range(A, 3):
+                sos[A, B] += (
+                    2.0 * (dip[A] * dip[B]) / state.excitation_energy_uncorrected[i]
                 )
-                sos[c2, c1] = sos[c1, c2]
+                sos[B, A] = sos[A, B]
     return sos
 
 
@@ -36,12 +46,16 @@ def sos_complex_polarizability(state, omegas=None, gamma=0.01):
         omegas = [0.0]
     sos = np.zeros((len(omegas), 3, 3), dtype=np.complex)
     for i, dip in enumerate(state.transition_dipole_moment):
-        for c1 in range(3):
-            for c2 in range(c1, 3):
-                sos[:, c1, c2] += dip[c1] * dip[c2] / (
-                    state.excitation_energy[i] - omegas + np.complex(0, -gamma)
-                ) + dip[c2] * dip[c1] / (
-                    state.excitation_energy[i] + omegas + np.complex(0, gamma)
+        for A in range(3):
+            for B in range(A, 3):
+                sos[:, A, B] += dip[A] * dip[B] / (
+                    state.excitation_energy_uncorrected[i]
+                    - omegas
+                    + np.complex(0, -gamma)
+                ) + dip[B] * dip[A] / (
+                    state.excitation_energy_uncorrected[i]
+                    + omegas
+                    + np.complex(0, gamma)
                 )
-                sos[:, c2, c1] = sos[:, c1, c2]
+                sos[:, B, A] = sos[:, A, B]
     return sos

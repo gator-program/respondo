@@ -5,7 +5,7 @@ Compute static polarizabilities in adcc
 import adcc
 from pyscf import gto, scf
 
-from antwort import static_polarizability
+from respondo import static_polarizability
 
 mol = gto.M(
     atom="O 0 0 0;"

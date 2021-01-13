@@ -7,13 +7,13 @@ from pyscf import gto, scf
 
 import numpy as np
 
-from antwort import (
+from respondo import (
     static_polarizability,
     complex_polarizability,
     c6_dispersion_coefficient,
 )
 
-from antwort.sos import (
+from respondo.sos import (
     sos_static_polarizability,
     sos_c6,
     sos_complex_polarizability,
@@ -43,9 +43,7 @@ class TestPolarizability(unittest.TestCase):
         # SOS
         alpha_0_sos = sos_static_polarizability(state)
         c6_sos = sos_c6(state)
-        alpha_c_sos = sos_complex_polarizability(
-            state, omegas=[omega], gamma=gamma
-        )
+        alpha_c_sos = sos_complex_polarizability(state, omegas=[omega], gamma=gamma)
 
         # Response Solvers
         alpha_c = complex_polarizability(

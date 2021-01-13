@@ -1,10 +1,9 @@
-# Antwort - Library for Response Functions
+# respondo - Library for Response Functions
 
-Antwort is a library for evaluating response functions
+respondo is a library for evaluating response functions
 using wave-function-based methods, such as ADC.
 
 Examples can be found in the `examples` folder.
-
 
 ## Dependencies
 

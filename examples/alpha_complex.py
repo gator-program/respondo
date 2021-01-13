@@ -9,8 +9,8 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from antwort import complex_polarizability
-from antwort.polarizability import one_photon_absorption_cross_section
+from respondo import complex_polarizability
+from respondo.polarizability import one_photon_absorption_cross_section
 
 
 mol = gto.M(
