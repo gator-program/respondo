@@ -5,6 +5,7 @@ from .polarizability import (
     c6_dispersion_coefficient,
 )
 
+__version__ = "0.0.1"
 __all__ = [
     "static_polarizability",
     "complex_polarizability",

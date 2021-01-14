@@ -1,0 +1,31 @@
+package:
+    name: respondo
+    version: @RESPONDO_VERSION@
+
+source:
+    path: ../
+
+build:
+    noarch: python
+    number: 0
+    script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+
+requirements:
+    host:
+        - python >=3.6
+        - pip
+    run:
+        - python >=3.6
+        - numpy >=1.14
+        - adcc >=0.15.6
+
+test:
+    requires:
+        - pytest
+    imports:
+        - respondo
+        - adcc
+    commands:
+        # Inspect linkage
+        - conda inspect linkages --show-files --groupby=dependency respondo
+        # TODO: actually run tests
