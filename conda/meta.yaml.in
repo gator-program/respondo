@@ -25,7 +25,7 @@ test:
     imports:
         - respondo
         - adcc
-    commands:
+    # commands:
         # Inspect linkage
-        - conda inspect linkages --show-files --groupby=dependency respondo
+        # - conda inspect linkages --show-files --groupby=dependency respondo
         # TODO: actually run tests
