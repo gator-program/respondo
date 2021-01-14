@@ -8,6 +8,9 @@ jobs:
   test:
     name: Python ${{ matrix.version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
     strategy:
       matrix:
         include:
@@ -17,12 +20,16 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
             auto-update-conda: true
-            activate-environment: test-env
             environment-file: dev_env.yml
+            activate-environment: test-env
             python-version: ${{ matrix.version }}
       - name: Conda info
-        run: conda info
-      - name: Install pyscf
-        run: pip install pyscf
+        run: |
+          conda info
+          conda list
+      - name: Install pip dependencies
+        run: |
+          pip install pyscf
       - name: Run tests
-        run: pytest
+        run: |
+          pytest
