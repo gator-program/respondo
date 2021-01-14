@@ -23,6 +23,6 @@ jobs:
       - name: Conda info
         run: conda info
       - name: Install pyscf
-        run: pip install pyscf
+        run: pip install pyscf pytest
       - name: Run tests
-        run: pytest
+        run: py.test
