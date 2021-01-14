@@ -1,0 +1,8 @@
+name: test-env
+channels:
+  - adcc
+  - defaults
+dependencies:
+  - adcc
+  - pytest
+  - numpy

@@ -17,14 +17,12 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
             auto-update-conda: true
+            activate-environment: test-env
+            environment-file: dev_env.yml
             python-version: ${{ matrix.version }}
       - name: Conda info
         run: conda info
-      - name: Install dependencies
-        run: |
-          conda install adcc numpy pytest -c adcc -c defaults
-          pip install pyscf
+      - name: Install pyscf
+        run: pip install pyscf
       - name: Run tests
         run: pytest
-      
-
