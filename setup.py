@@ -1,5 +1,5 @@
 """Setup for respondo"""
-import os
+import os, sys
 from setuptools import find_packages, setup
 
 
@@ -13,7 +13,6 @@ def is_conda_build():
 def respondo_setup(*args, **kwargs):
     if is_conda_build():
         kwargs.pop("install_requires")
-        kwargs.pop("setup_requires")
         kwargs.pop("tests_require")
     try:
         setup(*args, **kwargs)
@@ -65,5 +64,4 @@ respondo_setup(
         "adcc >= 0.15.6",
     ],
     tests_require=["pytest" , "pyscf"],
-    #
 )
