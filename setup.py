@@ -1,8 +1,27 @@
 """Setup for respondo"""
+import os
 from setuptools import find_packages, setup
 
 
-setup(
+def is_conda_build():
+    return (
+        os.environ.get("CONDA_BUILD", None) == "1"
+        or os.environ.get("CONDA_EXE", None)
+    )
+
+
+def respondo_setup(*args, **kwargs):
+    if is_conda_build():
+        kwargs.pop("install_requires")
+        kwargs.pop("setup_requires")
+        kwargs.pop("tests_require")
+    try:
+        setup(*args, **kwargs)
+    except Exception as e:
+        raise RuntimeError("respondo setup.py failed.")
+
+
+respondo_setup(
     name="respondo",
     description="respondo: Library for Response Functions",
     keywords=[

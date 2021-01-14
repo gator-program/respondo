@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Python ${{ matrix.version }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - {version: '3.6', os: ubuntu-latest}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+            auto-update-conda: true
+            python-version: ${{ matrix.version }}
+      - name: Conda info
+        run: conda info
+      - name: Install dependencies
+        run: |
+          conda install adcc numpy pytest -c adcc -c defaults
+          pip install pyscf
+      - name: Run tests
+        run: pytest
+      
+
