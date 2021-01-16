@@ -58,4 +58,4 @@ def sos_complex_polarizability(state, omegas=None, gamma=0.01):
                     + np.complex(0, gamma)
                 )
                 sos[:, B, A] = sos[:, A, B]
-    return sos
+    return np.squeeze(sos)
