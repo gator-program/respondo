@@ -6,3 +6,4 @@ dependencies:
   - adcc
   - numpy
   - pytest
+  - pandas
