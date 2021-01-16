@@ -3,7 +3,6 @@ Test response properties against SOS
 """
 import unittest
 import adcc
-from pyscf import gto, scf
 
 import numpy as np
 
@@ -48,7 +47,9 @@ class TestPolarizability(unittest.TestCase):
 
         omega = np.random.random() + 0.1
         gamma = np.random.random() + 1e-4
-        alpha_ref = sos_complex_polarizability(mock_state, omegas=[omega], gamma=gamma)
+        alpha_ref = sos_complex_polarizability(
+            mock_state, omegas=[omega], gamma=gamma
+        )
 
         scfres = run_scf(molecule, basis)
         refstate = adcc.ReferenceState(scfres)

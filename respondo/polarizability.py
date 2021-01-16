@@ -4,7 +4,7 @@ import numpy as np
 
 from adcc.adc_pp import modified_transition_moments
 from .cpp_algebra import ResponseVector
-from .solve_response import solve_complex, solve_real
+from .solve_response import solve_response
 
 _comps = ["x", "y", "z"]
 
@@ -25,7 +25,8 @@ def static_polarizability(matrix_method, reference_state, **solver_args):
         property_method = matrix.method.at_level(2)
 
     rhss = modified_transition_moments(property_method, ground_state, dips)
-    response = [solve_real(matrix, rhs, 0.0, **solver_args) for rhs in rhss]
+    response = [solve_response(matrix, rhs, 0.0, gamma=0.0, **solver_args)
+                for rhs in rhss]
 
     polarizability = np.zeros((3, 3))
     for A in range(3):
@@ -55,11 +56,13 @@ def complex_polarizability(
 
     rhss = modified_transition_moments(property_method, ground_state, dips)
     response_positive = [
-        solve_complex(matrix, ResponseVector(rhs), omega, gamma, **solver_args)
+        solve_response(matrix, ResponseVector(rhs),
+                       omega, gamma, **solver_args)
         for rhs in rhss
     ]
     response_negative = [
-        solve_complex(matrix, ResponseVector(rhs), -omega, gamma, **solver_args)
+        solve_response(matrix, ResponseVector(rhs),
+                       -omega, gamma, **solver_args)
         for rhs in rhss
     ]
 
@@ -68,14 +71,20 @@ def complex_polarizability(
         for B in range(A, 3):
             rsp_pos = response_positive[B]
             rsp_neg = response_negative[B]
-            polarizability.real[A, B] = rsp_pos.real @ rhss[A] + rsp_neg.real @ rhss[A]
-            polarizability.imag[A, B] = rsp_pos.imag @ rhss[A] - rsp_neg.imag @ rhss[A]
+            polarizability.real[A, B] = (
+                rsp_pos.real @ rhss[A] + rsp_neg.real @ rhss[A]
+            )
+            polarizability.imag[A, B] = (
+                rsp_pos.imag @ rhss[A] - rsp_neg.imag @ rhss[A]
+            )
             polarizability[B, A] = polarizability[A, B]
     return polarizability
 
 
 def one_photon_absorption_cross_section(polarizability, omegas):
-    isotropic_avg_im_alpha = 1.0 / 3.0 * np.trace(polarizability.imag, axis1=1, axis2=2)
+    isotropic_avg_im_alpha = (
+        1.0 / 3.0 * np.trace(polarizability.imag, axis1=1, axis2=2)
+    )
     return 4.0 * np.pi / 137.0 * omegas * isotropic_avg_im_alpha
 
 

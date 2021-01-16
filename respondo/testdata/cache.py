@@ -44,4 +44,3 @@ def read_full_diagonalization():
 
 
 data_fulldiag = read_full_diagonalization()
-        

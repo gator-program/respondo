@@ -1,54 +1,24 @@
 import numpy as np
 
 from adcc.solver.conjugate_gradient import conjugate_gradient, default_print
-from adcc.solver.preconditioner import JacobiPreconditioner
-from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 from adcc.adc_pp.state2state_transition_dm import state2state_transition_dm
 from adcc.OneParticleOperator import product_trace
 
-from .cpp_algebra import (
-    ComplexPolarizationPropagatorPinv,
-    ResponseVectorSymmetrisation,
-)
-from .cpp_algebra import ComplexPolarizationPropagatorMatrix as CppMatrix
+from .MatrixWrapper import MatrixWrapper
 
 
-def solve_real(
-    matrix, rhs, omega, solver=conjugate_gradient, preconditioner=None, **solver_args
-):
-    matrix.omega = omega
-    if preconditioner is None:
-        preconditioner = JacobiPreconditioner(matrix)
-    explicit_symmetrisation = IndexSymmetrisation(matrix)
-    preconditioner.update_shifts(omega)
+def solve_response(matrix, rhs, omega, gamma,
+                   solver=conjugate_gradient, **solver_args):
+    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=False)
+    x0 = wrapper.preconditioner @ rhs
     # solve system of linear equations
-    x0 = preconditioner.apply(rhs)
     res = solver(
-        matrix,
+        wrapper,
         rhs=rhs,
         x0=x0,
         callback=default_print,
-        Pinv=preconditioner,
-        explicit_symmetrisation=explicit_symmetrisation,
-        **solver_args,
-    )
-    return res.solution
-
-
-def solve_complex(matrix, rhs, omega, gamma, solver=conjugate_gradient, **solver_args):
-    cpp_matrix = CppMatrix(matrix, gamma=gamma, omega=omega)
-    Pinv = ComplexPolarizationPropagatorPinv(cpp_matrix, shift=omega, gamma=gamma)
-    x0 = Pinv @ rhs
-    rsymm = ResponseVectorSymmetrisation(matrix)
-    guess_symm = rsymm.symmetrise(x0)
-    # solve system of linear equations
-    res = solver(
-        cpp_matrix,
-        rhs=rhs,
-        x0=guess_symm,
-        callback=default_print,
-        Pinv=Pinv,
-        explicit_symmetrisation=rsymm,
+        Pinv=wrapper.preconditioner,
+        explicit_symmetrisation=wrapper.explicit_symmetrisation,
         **solver_args,
     )
     return res.solution
@@ -66,13 +36,16 @@ def transition_polarizability(method, ground_state, from_vecs, ops, to_vecs):
     ret = np.zeros((len(from_vecs), len(ops), len(to_vecs)))
     for i, from_vec in enumerate(from_vecs):
         for j, to_vec in enumerate(to_vecs):
-            tdm = state2state_transition_dm(method, ground_state, from_vec, to_vec)
+            tdm = state2state_transition_dm(
+                method, ground_state, from_vec, to_vec
+            )
             for k, op in enumerate(ops):
                 ret[i, k, j] = product_trace(tdm, op)
     return np.squeeze(ret)
 
 
-def transition_polarizability_complex(method, ground_state, from_vecs, ops, to_vecs):
+def transition_polarizability_complex(method, ground_state,
+                                      from_vecs, ops, to_vecs):
     if not isinstance(from_vecs, list):
         from_vecs = [from_vecs]
     if not isinstance(to_vecs, list):
