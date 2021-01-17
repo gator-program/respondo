@@ -1,5 +1,3 @@
-import numpy as np
-
 from adcc.AmplitudeVector import AmplitudeVector
 from adcc.solver.preconditioner import JacobiPreconditioner
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation

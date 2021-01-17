@@ -42,7 +42,7 @@ class TestPolarizability(unittest.TestCase):
             method, refstate, fold_doubles=False, conv_tol=1e-8
         )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
-        
+
         if method == "adc2":
             alpha = static_polarizability(
                 method, refstate, fold_doubles=True, conv_tol=1e-8
