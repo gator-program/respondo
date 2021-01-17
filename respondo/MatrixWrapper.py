@@ -80,7 +80,8 @@ class ComplexPolarizationPropagatorMatrixFolded:
 
     @property
     def shape(self):
-        return (2 * self.matrix.shape[0], 2 * self.matrix.shape[1])
+        m11_sz = self.matrix.axis_lengths['ph']
+        return (2 * m11_sz, 2 * m11_sz)
 
     def _apply_D_G(self, other):
         app_ds = self.matrix.block_apply("pphh_ph", other.ph)

@@ -30,9 +30,29 @@ def run_scf(molecule, basis, backend="pyscf"):
     return scfres
 
 
-@expand_test_templates(cache.cases)
-class TestResponsePropertySos(unittest.TestCase):
-    def template_static_polarizability(self, case):
+solvers = [
+    'conjugate_gradient',
+    'cpp'
+]
+folding = [
+    True, False
+]
+
+cases_folding = []
+cases_solver = []
+for c in cache.cases:
+    for solver in solvers:
+        cases_folding.append((c, 'normal'))
+        cases_solver.append((c, 'normal', solver))
+        if "adc2" in c:
+            cases_folding.append((c, 'folded'))
+            cases_solver.append((c, 'folded', solver))
+
+
+@expand_test_templates(cases_folding)
+class TestResponsePropertySosReal(unittest.TestCase):
+    def template_static_polarizability(self, case, fold_doubles):
+        fold_doubles = fold_doubles == "folded"
         molecule, basis, method = case.split("_")
         mock_state = cache.data_fulldiag[case]
         alpha_ref = sos_static_polarizability(mock_state)
@@ -40,17 +60,13 @@ class TestResponsePropertySos(unittest.TestCase):
         scfres = run_scf(molecule, basis)
         refstate = adcc.ReferenceState(scfres)
         alpha = static_polarizability(
-            refstate, method=method, fold_doubles=False, conv_tol=1e-8
+            refstate, method=method, fold_doubles=fold_doubles,
+            conv_tol=1e-8,
         )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
 
-        if method == "adc2":
-            alpha = static_polarizability(
-                refstate, method=method, fold_doubles=True, conv_tol=1e-8
-            )
-            np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
-
-    def template_real_polarizability(self, case):
+    def template_real_polarizability(self, case, fold_doubles):
+        fold_doubles = fold_doubles == "folded"
         molecule, basis, method = case.split("_")
         mock_state = cache.data_fulldiag[case]
 
@@ -63,18 +79,15 @@ class TestResponsePropertySos(unittest.TestCase):
         refstate = adcc.ReferenceState(scfres)
         alpha = real_polarizability(
             refstate, method=method, omega=omega,
-            fold_doubles=False, conv_tol=1e-8
+            fold_doubles=fold_doubles, conv_tol=1e-8
         ).real
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
 
-        if method == "adc2":
-            alpha = real_polarizability(
-                refstate, method=method, omega=omega,
-                fold_doubles=True, conv_tol=1e-8
-            )
-            np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
 
-    def template_complex_polarizability(self, case):
+@expand_test_templates(cases_solver)
+class TestResponsePropertySosComplex(unittest.TestCase):
+    def template_complex_polarizability(self, case, fold_doubles, solver):
+        fold_doubles = fold_doubles == "folded"
         molecule, basis, method = case.split("_")
         mock_state = cache.data_fulldiag[case]
 
@@ -86,15 +99,10 @@ class TestResponsePropertySos(unittest.TestCase):
 
         scfres = run_scf(molecule, basis)
         refstate = adcc.ReferenceState(scfres)
+
         alpha = complex_polarizability(
             refstate, method=method, omega=omega, gamma=gamma,
-            fold_doubles=False, conv_tol=1e-8
+            solver=solver,
+            fold_doubles=fold_doubles, conv_tol=1e-8
         )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
-
-        if method == "adc2":
-            alpha = complex_polarizability(
-                refstate, method=method, omega=omega, gamma=gamma,
-                fold_doubles=True, conv_tol=1e-8
-            )
-            np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)

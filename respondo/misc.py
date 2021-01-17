@@ -6,6 +6,7 @@ def select_property_method(matrix):
         # Auto-select second-order properties for third-order calc
         return matrix.method.at_level(2)
 
+
 # taken from adcc (written by mfherbst)
 def expand_test_templates(arguments, template_prefix="template_"):
     """

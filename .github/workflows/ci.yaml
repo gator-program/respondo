@@ -33,7 +33,7 @@ jobs:
       - name: Run tests
         run: |
           pytest --cov=respondo
-      - name: Coveralls Upload
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Coveralls Upload
+      #   uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}

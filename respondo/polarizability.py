@@ -1,5 +1,3 @@
-from adcc import AdcMatrix, LazyMp
-
 import numpy as np
 
 from adcc.adc_pp import modified_transition_moments
@@ -84,7 +82,7 @@ def complex_polarizability(
     property_method = select_property_method(matrix)
     hf = matrix.reference_state
     mp = matrix.ground_state
-    dips = hf.operators.electric_dipole 
+    dips = hf.operators.electric_dipole
 
     rhss = modified_transition_moments(property_method, mp, dips)
     response_positive = [
