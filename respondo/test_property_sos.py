@@ -34,9 +34,6 @@ solvers = [
     'conjugate_gradient',
     'cpp'
 ]
-folding = [
-    True, False
-]
 
 cases_folding = []
 cases_solver = []

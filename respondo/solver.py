@@ -158,13 +158,8 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
         Ax_cont.extend(AxBlock)
         Mss = Mss_cont[:n_ss_vec, :n_ss_vec]
 
-        for i in range(n_ss_vec - n_block, n_ss_vec):
+        for i in range(n_ss_vec):
             for j in range(n_ss_vec - n_block, n_ss_vec):
-                if i <= j:
-                    Mss[i, j] = SS[i] @ Ax_cont[j]
-                    Mss[j, i] = Mss[i, j]
-        for i in range(n_ss_vec - n_block, n_ss_vec):
-            for j in range(0, n_ss_vec - n_block):
                 Mss[i, j] = SS[i] @ Ax_cont[j]
                 Mss[j, i] = Mss[i, j]
 
@@ -316,6 +311,7 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
     SS = x0
 
     Mss_cont = np.empty((max_subspace, max_subspace))
+    Gss_cont = np.empty((max_subspace, max_subspace))
     Ax_cont = []
     Dx_cont = []
     Gx_cont = []
@@ -340,33 +336,29 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
         if n_block > 0:
             state.n_applies += n_block
             AxBlock = [
-                AmplitudeVector(wrapper.matrix.block_apply('ph_ph', sv.ph))
+                AmplitudeVector(ph=wrapper.matrix.block_apply('ph_ph', sv.ph))
                 for sv in SS[-n_block:]
             ]
         Ax_cont.extend(AxBlock)
 
-        Mss = Mss_cont[:n_ss_vec, :n_ss_vec]
-        DGxBlock = [
-            matrix_folded._apply_D_G(sv)
-            for sv in SS[-n_block:]
-        ]
-        DxBlock = [bl[0] for bl in DGxBlock]
-        GxBlock = [bl[1] for bl in DGxBlock]
         for i in range(n_block):
-            Dx_cont.append(AxBlock[i] - DxBlock[i])
-        Gx_cont.extend(GxBlock)
+            Dx, Gx = matrix_folded._apply_D_G(SS[-n_block:][i])
+            Dx_cont.append(AxBlock[i] - Dx)
+            Gx_cont.append(Gx)
 
-        gamma_mat = np.zeros_like(Mss)
+        Mss = Mss_cont[:n_ss_vec, :n_ss_vec]
+        Gss = Gss_cont[:n_ss_vec, :n_ss_vec]
         for i in range(n_ss_vec):
-            for j in range(n_ss_vec):
-                if i <= j:
-                    Mss[i, j] = SS[i] @ Dx_cont[j]
-                    Mss[j, i] = Mss[i, j]
-                    gamma_mat[i, j] = SS[i] @ Gx_cont[j]
-                    gamma_mat[j, i] = gamma_mat[i, j]
+            for j in range(n_ss_vec - n_block, n_ss_vec):
+                Mss[i, j] = SS[i] @ Dx_cont[j]
+                Mss[j, i] = Mss[i, j]
+                Gss[i, j] = SS[i] @ Gx_cont[j]
+                Gss[j, i] = Gss[i, j]
 
-        large_Ass = np.hstack((Mss, gamma_mat))
-        large_Ass = np.vstack((large_Ass, np.hstack((gamma_mat, -Mss))))
+        full_Mss = np.block([
+            [Mss, Gss],
+            [Gss, -Mss]
+        ])
 
         rhs_SS_real = rhs_SS_real_cont[:n_ss_vec]
         rhs_SS_imag = rhs_SS_imag_cont[:n_ss_vec]
@@ -375,13 +367,13 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
         rhs_SS_imag[-n_block:] = rhs.imag @ SS[-n_block:]
         rhs_SS = np.append(rhs_SS_real, rhs_SS_imag)
 
-        x = la.solve(large_Ass, rhs_SS)
+        x = la.solve(full_Mss, rhs_SS)
 
-        Axfull_real = lincomb(x[:n_ss_vec], Dx_cont)
-        Axfull_imag = lincomb(x[n_ss_vec:], Dx_cont)
+        Axfull_real = lincomb(x[:n_ss_vec], Dx_cont, evaluate=True)
+        Axfull_imag = lincomb(x[n_ss_vec:], Dx_cont, evaluate=True)
 
-        gamma_real = lincomb(x[n_ss_vec:], Gx_cont)
-        gamma_imag = lincomb(x[:n_ss_vec], Gx_cont)
+        gamma_real = lincomb(x[n_ss_vec:], Gx_cont, evaluate=True)
+        gamma_imag = lincomb(x[:n_ss_vec], Gx_cont, evaluate=True)
 
         residual_real = (Axfull_real - rhs.real + gamma_real)
         residual_imag = (-1.0 * Axfull_imag - rhs.imag + gamma_imag)
