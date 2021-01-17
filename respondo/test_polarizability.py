@@ -38,8 +38,16 @@ class TestPolarizability(unittest.TestCase):
 
         scfres = run_scf(molecule, basis)
         refstate = adcc.ReferenceState(scfres)
-        alpha = static_polarizability(method, refstate, conv_tol=1e-8)
+        alpha = static_polarizability(
+            method, refstate, fold_doubles=False, conv_tol=1e-8
+        )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
+        
+        if method == "adc2":
+            alpha = static_polarizability(
+                method, refstate, fold_doubles=True, conv_tol=1e-8
+            )
+            np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
 
     def template_complex_polarizability(self, case):
         molecule, basis, method = case.split("_")
@@ -54,6 +62,14 @@ class TestPolarizability(unittest.TestCase):
         scfres = run_scf(molecule, basis)
         refstate = adcc.ReferenceState(scfres)
         alpha = complex_polarizability(
-            method, refstate, omega=omega, gamma=gamma, conv_tol=1e-8
+            method, refstate, omega=omega, gamma=gamma,
+            fold_doubles=False, conv_tol=1e-8
         )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
+
+        if method == "adc2":
+            alpha = complex_polarizability(
+                method, refstate, omega=omega, gamma=gamma,
+                fold_doubles=True, conv_tol=1e-8
+            )
+            np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)

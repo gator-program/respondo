@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = respondo
+omit =
+	respondo/testdata/*
+	*/test_*.py

@@ -6,4 +6,6 @@ dependencies:
   - adcc
   - numpy
   - pytest
+  - pytest-cov
+  - coveralls
   - pandas

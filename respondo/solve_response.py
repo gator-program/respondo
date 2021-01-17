@@ -7,21 +7,25 @@ from adcc.OneParticleOperator import product_trace
 from .MatrixWrapper import MatrixWrapper
 
 
-def solve_response(matrix, rhs, omega, gamma,
-                   solver=conjugate_gradient, **solver_args):
-    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=False)
-    x0 = wrapper.preconditioner @ rhs
+def solve_response(matrix, rhs, omega, gamma, solver=conjugate_gradient,
+                   fold_doubles=False, **solver_args):
+    
+    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=fold_doubles)
+    rhs_processed = wrapper.form_rhs(rhs)
+    x0 = wrapper.preconditioner @ rhs_processed
     # solve system of linear equations
     res = solver(
         wrapper,
-        rhs=rhs,
+        rhs=rhs_processed,
         x0=x0,
         callback=default_print,
         Pinv=wrapper.preconditioner,
         explicit_symmetrisation=wrapper.explicit_symmetrisation,
         **solver_args,
     )
-    return res.solution
+    print(wrapper)
+    solution = wrapper.form_solution(res.solution, rhs)
+    return solution
 
 
 # from_vecs * B(ops) * to_vecs
