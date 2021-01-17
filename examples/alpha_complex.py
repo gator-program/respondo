@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from respondo import complex_polarizability
 from respondo.polarizability import one_photon_absorption_cross_section
-
+from respondo import c6_dispersion_coefficient
 
 mol = gto.M(
     atom="""
@@ -29,13 +29,16 @@ scfres.conv_tol_grad = 1e-8
 scfres.kernel()
 
 refstate = adcc.ReferenceState(scfres)
+matrix = adcc.AdcMatrix('adc2', refstate)
 
 omegas = np.linspace(0.59, 0.61, 30)
 gamma = 1e-3
 
+c6 = c6_dispersion_coefficient(matrix, 'adc2')
+
 all_pol = [
     complex_polarizability(
-        "adc2", refstate, omega=w, gamma=gamma, conv_tol=1e-3
+        matrix, omega=w, gamma=gamma, conv_tol=1e-3, fold_doubles=True
     )
     for w in omegas
 ]

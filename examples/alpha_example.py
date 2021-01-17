@@ -22,8 +22,5 @@ scfres.kernel()
 
 refstate = adcc.ReferenceState(scfres)
 
-nstates = 3
-state = adcc.adc2(scfres, n_singlets=nstates, conv_tol=1e-6)
-
-alpha_0 = static_polarizability("adc2", refstate, conv_tol=1e-6)
+alpha_0 = static_polarizability(refstate, 'adc2', conv_tol=1e-6)
 print(alpha_0)

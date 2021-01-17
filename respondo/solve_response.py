@@ -8,12 +8,13 @@ from .MatrixWrapper import MatrixWrapper
 
 
 def solve_response(matrix, rhs, omega, gamma, solver=conjugate_gradient,
-                   fold_doubles=False, **solver_args):
+                   return_residuals=False, fold_doubles=False, **solver_args):
 
     wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=fold_doubles)
     rhs_processed = wrapper.form_rhs(rhs)
     x0 = wrapper.preconditioner @ rhs_processed
     # solve system of linear equations
+    print(wrapper)
     res = solver(
         wrapper,
         rhs=rhs_processed,
@@ -24,7 +25,6 @@ def solve_response(matrix, rhs, omega, gamma, solver=conjugate_gradient,
         **solver_args,
     )
     assert res.converged
-    print(wrapper)
     solution = wrapper.form_solution(res.solution, rhs)
     return solution
 
