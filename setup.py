@@ -47,5 +47,5 @@ setup(
         "adcc >= 0.15.6",
         "pandas >= 0.25.0",
     ],
-    tests_require=["pytest" , "pyscf"],
+    tests_require=["pytest" , "pytest-cov", "pyscf"],
 )

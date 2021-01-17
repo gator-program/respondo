@@ -6,22 +6,48 @@ from adcc.OneParticleOperator import product_trace
 
 from .MatrixWrapper import MatrixWrapper
 
+from .solver import cpp_solver, cpp_solver_folded
 
-def solve_response(matrix, rhs, omega, gamma,
-                   solver=conjugate_gradient, **solver_args):
-    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=False)
-    x0 = wrapper.preconditioner @ rhs
-    # solve system of linear equations
-    res = solver(
-        wrapper,
-        rhs=rhs,
-        x0=x0,
-        callback=default_print,
-        Pinv=wrapper.preconditioner,
-        explicit_symmetrisation=wrapper.explicit_symmetrisation,
-        **solver_args,
-    )
-    return res.solution
+
+def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
+                   return_residuals=False, fold_doubles=False, **solver_args):
+
+    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=fold_doubles)
+    rhs_processed = wrapper.form_rhs(rhs)
+    x0 = wrapper.preconditioner @ rhs_processed
+
+    if solver == "conjugate_gradient":
+        # solve system of linear equations
+        print(wrapper)
+        res = conjugate_gradient(
+            wrapper,
+            rhs=rhs_processed,
+            x0=x0,
+            callback=default_print,
+            Pinv=wrapper.preconditioner,
+            explicit_symmetrisation=wrapper.explicit_symmetrisation,
+            **solver_args,
+        )
+        assert res.converged
+        solution = wrapper.form_solution(res.solution, rhs)
+        return solution
+    elif solver == "cpp" and not fold_doubles:
+        res = cpp_solver(
+            matrix, rhs_processed, x0, omega, gamma,
+            Pinv=wrapper.preconditioner, **solver_args
+        )
+        assert res.converged
+        return res.solution
+    elif solver == "cpp" and fold_doubles:
+        res = cpp_solver_folded(
+            wrapper, rhs_processed, x0, omega, gamma,
+            **solver_args
+        )
+        assert res.converged
+        solution = wrapper.form_solution(res.solution, rhs)
+        return solution
+    else:
+        raise NotImplementedError()
 
 
 # from_vecs * B(ops) * to_vecs

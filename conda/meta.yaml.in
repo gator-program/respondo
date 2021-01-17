@@ -17,7 +17,7 @@ requirements:
     run:
         - python >=3.6
         - numpy >=1.14
-        - adcc >=0.15.6
+        - adcc >=0.15.7
         - pandas >=0.25.0
 
 test:

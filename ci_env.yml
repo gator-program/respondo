@@ -1,4 +1,4 @@
-name: test-env
+name: ci-env
 channels:
   - adcc
   - defaults
@@ -6,4 +6,6 @@ dependencies:
   - adcc
   - numpy
   - pytest
+  - pytest-cov
+  - coveralls
   - pandas
