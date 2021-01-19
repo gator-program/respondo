@@ -10,9 +10,13 @@ from .solver import cpp_solver, cpp_solver_folded
 
 
 def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
-                   return_residuals=False, fold_doubles=False, **solver_args):
+                   return_residuals=False, fold_doubles=False, projection=None,
+                   **solver_args):
 
-    wrapper = MatrixWrapper(matrix, omega, gamma, fold_doubles=fold_doubles)
+    wrapper = MatrixWrapper(
+        matrix, omega, gamma, fold_doubles=fold_doubles,
+        projection=projection
+    )
     rhs_processed = wrapper.form_rhs(rhs)
     x0 = wrapper.preconditioner @ rhs_processed
 

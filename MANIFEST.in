@@ -1,0 +1,5 @@
+# Exclude test stuff
+global-exclude test_*.py
+exclude respondo/conftest.py
+# include LICENSE
+include README.md

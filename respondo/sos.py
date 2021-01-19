@@ -56,3 +56,97 @@ def sos_complex_polarizability(state, omegas=None, gamma=0.01):
                 )
                 sos[:, B, A] = sos[:, A, B]
     return np.squeeze(sos)
+
+
+def sos_rixs_amplitude(state, final_state=0, omega=0.0, gamma=0.01):
+    """
+    SOS for RIXS amplitude in the rotating wave approximation
+    """
+    F = np.zeros((3, 3), dtype=np.complex)
+    s2s_tdm = state.transition_dipole_moment_s2s
+    for ee in range(state.excitation_energy.size):
+        tdm_fn = s2s_tdm[ee, final_state]
+        for A in range(3):
+            for B in range(3):
+                F[A, B] += (
+                    tdm_fn[A]
+                    * state.transition_dipole_moment[ee][B]
+                    / (state.excitation_energy_uncorrected[ee] - omega - np.complex(0, gamma))
+                )
+    # ground state coupling
+    tdip_f = state.transition_dipole_moment[final_state]
+    pm = state.property_method.replace("adc", "")
+    gs_dip_moment = state.ground_state.dipole_moment[pm]
+    for A in range(3):
+        for B in range(3):
+            F[A, B] += (tdip_f[A] * gs_dip_moment[B]) / (
+                -omega - np.complex(0, gamma)
+            ) - (gs_dip_moment[A] * tdip_f[B]) / (
+                omega
+                + np.complex(0, gamma)
+                - state.excitation_energy_uncorrected[final_state]
+            )
+    return F
+
+
+def sos_tpa_matrix_resonant(state, final_state=0):
+    ret = np.zeros((3, 3))
+    w = state.excitation_energy_uncorrected[final_state] / 2.0
+    nstates = state.excitation_energy.size
+    s2s_tdm = state.transition_dipole_moment_s2s
+    for k in range(nstates):
+        for A in range(3):
+            for B in range(A, 3):
+                ret[A, B] += (
+                    state.transition_dipole_moment[k][A]
+                    * s2s_tdm[k, final_state, B]
+                    / (state.excitation_energy_uncorrected[k] - w)
+                )
+                ret[A, B] += (
+                    state.transition_dipole_moment[k][B]
+                    * s2s_tdm[k, final_state, A]
+                    / (state.excitation_energy_uncorrected[k] - w)
+                )
+                ret[B, A] = ret[A, B]
+    return ret
+
+
+def sos_mcd_bterm(state, final_state=0):
+    term1 = np.zeros((3, 3))
+    term2 = np.zeros_like(term1)
+
+    e_f = state.excitation_energy_uncorrected[final_state]
+    tdip_f = state.transition_dipole_moment[final_state]
+
+    s2s_tdm = state.transition_dipole_moment_s2s
+    s2s_tdm_mag = state.transition_magnetic_moment_s2s
+    nstates = state.excitation_energy.size
+    for k in range(nstates):
+        for A in range(3):
+            for B in range(3):
+                term1[A, B] -= (
+                    state.transition_magnetic_dipole_moment[k][A]
+                    * s2s_tdm[k, final_state, B]
+                    / (state.excitation_energy_uncorrected[k])
+                )
+                if k != final_state:
+                    term2[A, B] += (
+                        state.transition_dipole_moment[k][B]
+                        * s2s_tdm_mag[k, final_state, A]
+                        / (state.excitation_energy_uncorrected[k] - e_f)
+                    )
+
+    tmag_f = state.transition_magnetic_dipole_moment[final_state]
+    dip_f = state.state_dipole_moment[final_state]
+
+    pm = state.property_method.replace("adc", "") 
+    mom_product2 = np.einsum("A,B->AB", tmag_f, state.ground_state.dipole_moment[pm])
+    mom_product1 = np.einsum("A,B->AB", tmag_f, dip_f)
+    gs_term = (-mom_product1 + mom_product2) / e_f
+    term2 += gs_term
+
+    epsilon = np.zeros((3, 3, 3))
+    epsilon[0, 1, 2] = epsilon[1, 2, 0] = epsilon[2, 0, 1] = 1
+    epsilon[2, 1, 0] = epsilon[0, 2, 1] = epsilon[1, 0, 2] = -1
+    B = np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + term2)
+    return B

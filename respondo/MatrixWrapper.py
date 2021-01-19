@@ -2,9 +2,46 @@ from adcc.AmplitudeVector import AmplitudeVector
 from adcc.solver.preconditioner import JacobiPreconditioner
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 from adcc.functions import empty_like, evaluate
-from adcc.AdcMatrix import AdcMatrixShifted
+from adcc.AdcMatrix import AdcMatrix
 
 from .cpp_algebra import ResponseVector, ResponseVectorSymmetrisation
+
+
+class AdcMatrixShifted(AdcMatrix):
+    def __init__(self, matrix, shift=0.0, projection=None):
+        super().__init__(matrix.method, matrix.ground_state,
+                         block_orders=matrix.block_orders,
+                         intermediates=matrix.intermediates)
+        self.projection = projection
+        self.shift = shift
+
+    def matvec(self, in_ampl):
+        out = super().matvec(in_ampl)
+        if callable(self.projection):
+            out -= self.projection(out)
+        out = out + self.shift * in_ampl
+        return out
+
+    def to_ndarray(self, out=None):
+        super().to_ndarray(self, out)
+        out = out + self.shift * np.eye(*out.shape)
+        return out
+
+    def block_apply(self, block, in_vec):
+        ret = super().block_apply(block, in_vec)
+        inblock, outblock = block.split("_")
+        if inblock == outblock:
+            ret += self.shift * in_vec
+        return ret
+
+    def diagonal(self, block=None):
+        out = super().diagonal(block)
+        out = out + self.shift  # Shift the diagonal
+        return out
+
+    def block_view(self, block):
+        raise NotImplementedError("Block-view not yet implemented for "
+                                  "shifted ADC matrices.")
 
 
 class ComplexPolarizationPropagatorMatrix:
@@ -161,10 +198,11 @@ class ComplexPolarizationPropagatorMatrixFolded:
 
 
 class MatrixFolded:
-    def __init__(self, matrix, omega):
+    def __init__(self, matrix, omega, projection=None):
         self.matrix = matrix
         self.omega = omega
         self.isymm = IndexSymmetrisation(self.matrix)
+        self.projection = projection
 
         # NOTE: omega is static!
         D22_shifted = evaluate(self.matrix.diagonal().pphh - self.omega)
@@ -178,12 +216,16 @@ class MatrixFolded:
         self.isymm.symmetrise([AmplitudeVector(pphh=tmp_D_double)])
         tmp_D_single = empty_like(other)
         tmp_D_single.ph = self.matrix.block_apply("ph_pphh", tmp_D_double)
+        if callable(self.projection):
+            tmp_D_single.ph -= self.projection(tmp_D_single.ph, "ph")
         ret = evaluate(tmp_D_single + other * self.omega)
         return ret
 
     def __matmul__(self, invec):
         tmp_real = empty_like(invec)
         tmp_real.ph = self.matrix.block_apply("ph_ph", invec.ph)
+        if callable(self.projection):
+            tmp_real.ph -= self.projection(tmp_real.ph, "ph")
         tmp_D_real = self._apply_D(invec)
         ret = tmp_real - tmp_D_real
         return ret
@@ -204,13 +246,17 @@ class MatrixFolded:
 
 
 class MatrixWrapper:
-    def __init__(self, matrix, omega, gamma, fold_doubles):
+    def __init__(self, matrix, omega, gamma, fold_doubles, projection=None):
         self.matrix = matrix
         self.omega = omega
         self.gamma = gamma
         self.fold_doubles = fold_doubles
         self._fold_rhs = None
         self._unfold_solution = None
+        self._projection = None
+        if projection is not None:
+            assert callable(projection)
+            self._projection = projection
         if self.fold_doubles:
             assert self.matrix.method.level == 2
         self.__select_matrix()
@@ -223,8 +269,13 @@ class MatrixWrapper:
     def __select_matrix(self):
         if self.gamma == 0.0:
             if self.fold_doubles:
-                self._wrapped = MatrixFolded(self.matrix, self.omega)
-                self._precond = JacobiPreconditioner(self.matrix, self.omega)
+                self._wrapped = MatrixFolded(
+                    self.matrix, self.omega,
+                    self._projection
+                )
+                self._precond = JacobiPreconditioner(
+                    self.matrix, self.omega
+                )
                 self._precond.diagonal = self.matrix.diagonal().ph
                 self._fold_rhs = self._wrapped.fold_rhs
                 self._unfold_solution = self._wrapped.unfold_solution
@@ -232,9 +283,12 @@ class MatrixWrapper:
             else:
                 # NOTE: adcc implements M + 1shift
                 self._wrapped = AdcMatrixShifted(
-                    self.matrix, shift=-self.omega
+                    self.matrix, shift=-self.omega,
+                    projection=self._projection
                 )
-                self._precond = JacobiPreconditioner(self.matrix, self.omega)
+                self._precond = JacobiPreconditioner(
+                    self.matrix, self.omega
+                )
                 self._symm = IndexSymmetrisation(self.matrix)
         else:
             if self.fold_doubles:

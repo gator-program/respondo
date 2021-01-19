@@ -1,6 +1,6 @@
 import os
-import pandas as pd
 import numpy as np
+import zarr
 
 
 cases = {
@@ -9,37 +9,31 @@ cases = {
     "h2o_ccpvdz_adc1": 95,
     # "h2o_ccpvdz_adc2": 4655,
     "formaldehyde_sto3g_adc1": 32,
-    "formaldehyde_sto3g_adc2": 560,
+    # "formaldehyde_sto3g_adc2": 560,
 }
 
 
 class MockExcitedStates:
-    def __init__(self, dataframe):
-        self.df = dataframe
-        carts = ["_x", "_y", "_z"]
-        for col in self.df.columns:
-            if any(c in col for c in carts):
-                fld = "_".join(col.split("_")[:-1])
-                x = getattr(self.df, fld + "_x")
-                y = getattr(self.df, fld + "_y")
-                z = getattr(self.df, fld + "_z")
-                assembled = np.vstack(
-                    (x.values, y.values, z.values)
-                ).T
-                setattr(self, fld, assembled)
-            else:
-                setattr(self, col, getattr(self.df, col).values)
+    def __init__(self, zr):
+        self.zr = zr
+        exci = self.zr.excitation
+        for k in exci.attrs:
+            setattr(self, k, exci.attrs[k])
+        for k in exci:
+            setattr(self, k,
+                    np.asarray(exci[k]))
+        self.ground_state = self.zr.ground_state
 
 
 def read_full_diagonalization():
     ret = {}
     for case in cases:
         thisdir = os.path.dirname(__file__)
-        json_file = os.path.join(thisdir, f"{case}.json")
-        if not os.path.isfile(json_file):
+        zarr_file = os.path.join(thisdir, f"{case}.zarr")
+        if not os.path.isdir(zarr_file):
             continue
-        df = pd.read_json(json_file)
-        ret[case] = MockExcitedStates(df)
+        z = zarr.open(zarr_file, mode='r')
+        ret[case] = MockExcitedStates(z)
     return ret
 
 
