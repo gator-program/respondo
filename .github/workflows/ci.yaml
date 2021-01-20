@@ -32,7 +32,7 @@ jobs:
           pip install pyscf
       - name: Run tests
         run: |
-          pytest -v --rootdir=respondo --cov=respondo
+          pytest --rootdir=respondo --cov=respondo
       # - name: Coveralls Upload
       #   uses: coverallsapp/github-action@master
       #   with:

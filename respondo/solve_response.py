@@ -7,16 +7,22 @@ from adcc.OneParticleOperator import product_trace
 from .MatrixWrapper import MatrixWrapper
 
 from .solver import cpp_solver, cpp_solver_folded
+from .cpp_algebra import ResponseVector
 
 
 def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
                    return_residuals=False, fold_doubles=False, projection=None,
+                   callback=default_print,
                    **solver_args):
 
     wrapper = MatrixWrapper(
         matrix, omega, gamma, fold_doubles=fold_doubles,
-        projection=projection
+        projection=projection, solver=solver
     )
+    take_real_solution = False
+    if solver == "cpp" and not isinstance(rhs, ResponseVector):
+        take_real_solution = True
+        rhs = ResponseVector(rhs)
     rhs_processed = wrapper.form_rhs(rhs)
     x0 = wrapper.preconditioner @ rhs_processed
 
@@ -27,9 +33,9 @@ def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
             wrapper,
             rhs=rhs_processed,
             x0=x0,
-            callback=default_print,
             Pinv=wrapper.preconditioner,
             explicit_symmetrisation=wrapper.explicit_symmetrisation,
+            callback=callback,
             **solver_args,
         )
         assert res.converged
@@ -38,17 +44,24 @@ def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
     elif solver == "cpp" and not fold_doubles:
         res = cpp_solver(
             matrix, rhs_processed, x0, omega, gamma,
-            Pinv=wrapper.preconditioner, **solver_args
+            Pinv=wrapper.preconditioner, callback=callback,
+            **solver_args,
         )
         assert res.converged
-        return res.solution
+        solution = res.solution
+        if take_real_solution:
+            solution = solution.real
+        return solution
     elif solver == "cpp" and fold_doubles:
         res = cpp_solver_folded(
             wrapper, rhs_processed, x0, omega, gamma,
+            callback=callback,
             **solver_args
         )
         assert res.converged
         solution = wrapper.form_solution(res.solution, rhs)
+        if take_real_solution:
+            solution = solution.real
         return solution
     else:
         raise NotImplementedError()

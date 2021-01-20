@@ -64,6 +64,14 @@ def modified_gram_schmidt(guesses):
             guesses[ll] = guesses[ll] - (guesses[k] @ guesses[ll]) * guesses[k]
 
 
+def filter_by_norm(vectors, thresh=1e-15):
+    ret = []
+    for v in vectors:
+        if v.dot(v) > thresh:
+            ret.append(v)
+    return ret
+
+
 def filter_by_overlap(subspace, min_norm, max_add=None):
     n_vec = len(subspace)
     singles_subspace = [AmplitudeVector(s.ph) for s in subspace]
@@ -115,7 +123,7 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
     state = State()
 
     if max_subspace is None:
-        max_subspace = 1000
+        max_subspace = 50
 
     if isinstance(x0, ResponseVector):
         real = explicit_symmetrisation.symmetrise(x0.real)
@@ -126,7 +134,8 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
     else:
         raise NotImplementedError()
 
-    # x0 = filter_by_overlap(x0, 1e-12)
+    x0 = filter_by_norm(x0)
+    # x0 = filter_by_overlap(x0, 1e-14)
     modified_gram_schmidt(x0)
     # test_list_ortho(x0)
 
@@ -233,6 +242,7 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
 
         # if not (len(preconds) <= 2 or gamma == 0.0):
         #     preconds = filter_by_overlap(preconds, residual_min_norm)
+        # preconds = filter_by_norm(preconds)
         modified_gram_schmidt(preconds)
         n_ss_added = 0
         for pvec in preconds:
@@ -295,7 +305,7 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
     state = State()
 
     if max_subspace is None:
-        max_subspace = 1000
+        max_subspace = 50
 
     if isinstance(x0, ResponseVector):
         x0 = [x0.real, x0.imag]
@@ -304,7 +314,8 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
     else:
         raise NotImplementedError()
 
-    # x0 = filter_by_overlap(x0, 1e-12)
+    x0 = filter_by_norm(x0)
+    # x0 = filter_by_overlap(x0, 1e-14)
     modified_gram_schmidt(x0)
     # test_list_ortho(x0)
 
@@ -406,6 +417,7 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
 
         # if not (len(preconds) <= 2 or gamma == 0.0):
         #     preconds = filter_by_overlap(preconds, residual_min_norm)
+        # preconds = filter_by_norm(preconds)
         modified_gram_schmidt(preconds)
         n_ss_added = 0
         for pvec in preconds:

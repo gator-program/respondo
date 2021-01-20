@@ -246,11 +246,14 @@ class MatrixFolded:
 
 
 class MatrixWrapper:
-    def __init__(self, matrix, omega, gamma, fold_doubles, projection=None):
+    def __init__(self, matrix, omega, gamma, fold_doubles, projection=None,
+                 solver="conjugate_gradient"):
         self.matrix = matrix
         self.omega = omega
         self.gamma = gamma
         self.fold_doubles = fold_doubles
+        self.solver = solver
+        self._complex = False
         self._fold_rhs = None
         self._unfold_solution = None
         self._projection = None
@@ -267,7 +270,7 @@ class MatrixWrapper:
         return info
 
     def __select_matrix(self):
-        if self.gamma == 0.0:
+        if self.gamma == 0.0 and self.solver == "conjugate_gradient":
             if self.fold_doubles:
                 self._wrapped = MatrixFolded(
                     self.matrix, self.omega,
@@ -290,7 +293,8 @@ class MatrixWrapper:
                     self.matrix, self.omega
                 )
                 self._symm = IndexSymmetrisation(self.matrix)
-        else:
+        elif self.gamma != 0.0 or self.solver == "cpp":
+            self._complex = True
             if self.fold_doubles:
                 self._wrapped = ComplexPolarizationPropagatorMatrixFolded(
                     self.matrix, self.omega, self.gamma

@@ -64,7 +64,7 @@ class TestResponsePropertySosReal(unittest.TestCase):
         refstate = adcc.ReferenceState(scfres)
         alpha = static_polarizability(
             refstate, method=method, fold_doubles=fold_doubles,
-            conv_tol=1e-8,
+            conv_tol=1e-8
         )
         np.testing.assert_allclose(alpha_ref, alpha, atol=1e-7)
 
