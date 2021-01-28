@@ -30,3 +30,14 @@ test:
         # Inspect linkage
         # - conda inspect linkages --show-files --groupby=dependency respondo
         # TODO: actually run tests
+
+about:
+    home: https://github.com/gator-program/respondo
+    dev_url: https://github.com/gator-program/respondo
+    license: GPL-3.0
+    license_family: GPL
+    license_file: {{ SRC_DIR }}/LICENSE
+    summary: "respondo - Library for Response Functions"
+    description: |
+      respondo is a library for evaluating response functions
+      in the ADC/ISR framework.
