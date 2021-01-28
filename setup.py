@@ -45,7 +45,6 @@ setup(
     install_requires=[
         "numpy >= 1.14",
         "adcc >= 0.15.6",
-        "pandas >= 0.25.0",
     ],
-    tests_require=["pytest" , "pytest-cov", "pyscf"],
+    tests_require=["pytest" , "pytest-cov", "pyscf", "zarr"],
 )
