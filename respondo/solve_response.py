@@ -27,8 +27,6 @@ def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
     x0 = wrapper.preconditioner @ rhs_processed
 
     if solver == "conjugate_gradient":
-        # solve system of linear equations
-        print(wrapper)
         res = conjugate_gradient(
             wrapper,
             rhs=rhs_processed,
