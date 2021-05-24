@@ -13,7 +13,10 @@ class AdcMatrixShifted(AdcMatrix):
     def __init__(self, matrix, shift=0.0, projection=None):
         super().__init__(matrix.method, matrix.ground_state,
                          block_orders=matrix.block_orders,
-                         intermediates=matrix.intermediates)
+                         intermediates=matrix.intermediates,
+                         diagonal_precomputed=matrix.diagonal())
+        for et in matrix.extra_terms:
+            self += et
         self.projection = projection
         self.shift = shift
 
