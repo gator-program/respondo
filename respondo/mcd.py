@@ -121,13 +121,6 @@ def mcd_bterm(state, property_method=None, **solver_args):
         property_method, mp, v_f, dips_mag, response_el
     )
 
-    tmag_f = state.transition_magnetic_dipole_moment
-    dip_f = state.state_dipole_moment
-    mom_product2 = np.einsum("A,B->AB", tmag_f, mp.dipole_moment(property_method.level))
-    mom_product1 = np.einsum("A,B->AB", tmag_f, dip_f)
-    extra_term = (-mom_product1 + mom_product2) / e_f
-    term2 += extra_term
-
     # Levi-Civita tensor
     epsilon = np.zeros((3, 3, 3))
     epsilon[0, 1, 2] = epsilon[1, 2, 0] = epsilon[2, 0, 1] = 1
