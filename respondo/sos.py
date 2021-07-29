@@ -136,15 +136,6 @@ def sos_mcd_bterm(state, final_state=0):
                         / (state.excitation_energy_uncorrected[k] - e_f)
                     )
 
-    tmag_f = state.transition_magnetic_dipole_moment[final_state]
-    dip_f = state.state_dipole_moment[final_state]
-
-    pm = state.property_method.replace("adc", "") 
-    mom_product2 = np.einsum("A,B->AB", tmag_f, state.ground_state.dipole_moment[pm])
-    mom_product1 = np.einsum("A,B->AB", tmag_f, dip_f)
-    gs_term = (-mom_product1 + mom_product2) / e_f
-    term2 += gs_term
-
     epsilon = np.zeros((3, 3, 3))
     epsilon[0, 1, 2] = epsilon[1, 2, 0] = epsilon[2, 0, 1] = 1
     epsilon[2, 1, 0] = epsilon[0, 2, 1] = epsilon[1, 0, 2] = -1
