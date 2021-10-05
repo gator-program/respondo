@@ -56,7 +56,7 @@ def rixs(state, omega, gamma, property_method=None, rotating_wave=True, **solver
     if not rotating_wave:
         response_prime = [
             solve_response(
-                matrix, ResponseVector(rhs), -omega_prime, gamma, **solver_args
+                matrix, ResponseVector(rhs), -omega_prime, -gamma, **solver_args
             )
             for rhs in rhss
         ]
