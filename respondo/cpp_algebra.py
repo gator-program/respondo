@@ -1,6 +1,7 @@
 from adcc.functions import zeros_like, empty_like
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 from adcc import copy
+import numpy as np
 
 
 class ResponseVectorSymmetrisation:
@@ -27,7 +28,9 @@ class ResponseVector:
             self.real = zeros_like(self.imag)
 
     def dot(self, invec):
-        return self.real @ invec.real + self.imag @ invec.imag
+        real = self.real @ invec.real - self.imag @ invec.imag
+        imag = self.real @ invec.imag + self.imag @ invec.real
+        return np.complex(real, imag)
 
     def __matmul__(self, invec):
         return self.dot(invec)
