@@ -275,7 +275,7 @@ class MatrixWrapper:
         return info
 
     def __select_matrix(self):
-        if self.gamma == 0.0 and self.solver == "conjugate_gradient":
+        if self.gamma == 0.0 and self.solver in ["conjugate_gradient", "jacobi_diis"]:
             if self.fold_doubles:
                 self._wrapped = MatrixFolded(
                     self.matrix, self.omega,
