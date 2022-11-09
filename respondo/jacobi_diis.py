@@ -78,29 +78,17 @@ def jacobi_diis(matrix, rhs, x0, Dinv, conv_tol=1e-9, max_iter=100,
         return state.converged
 
     state = State()
-
     # Initialise iterates
     state.solution = x0
     if explicit_symmetrisation:
         state.solution = explicit_symmetrisation.symmetrise(state.solution)
+    state.residual = evaluate(rhs - matrix @ state.solution)
+    state.residual_norm = np.sqrt(state.residual @ state.residual)
 
     callback(state, "start")
     diis = DIIS(max_subspace=max_subspace)
     while state.n_iter < max_iter:
         state.n_iter += 1
-
-        Ax = evaluate(matrix @ state.solution)
-        state.n_applies += 1
-        r = evaluate(rhs - Ax)
-        x_new = evaluate(state.solution + Dinv @ r)
-        if explicit_symmetrisation:
-            x_new = explicit_symmetrisation.symmetrise(x_new)
-        
-        x_new = diis.extrapolate(x_new, r)
-
-        state.solution = x_new
-        state.residual = r
-        state.residual_norm = np.sqrt(r @ r)
 
         callback(state, "next_iter")
         if is_converged(state):
@@ -112,6 +100,15 @@ def jacobi_diis(matrix, rhs, x0, Dinv, conv_tol=1e-9, max_iter=100,
             raise la.LinAlgError("Maximum number of iterations (== "
                                  + str(max_iter) + " reached in Jacobi/DIIS "
                                  "procedure.")
+
+        x_new = evaluate(state.solution + Dinv @ state.residual)
+        if explicit_symmetrisation:
+            x_new = explicit_symmetrisation.symmetrise(x_new)
+        state.solution = diis.extrapolate(x_new, x_new - state.solution)
+
+        state.residual = evaluate(rhs - matrix @ state.solution)
+        state.n_applies += 1
+        state.residual_norm = np.sqrt(state.residual @ state.residual)
 
 
 class DIIS:
