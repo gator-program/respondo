@@ -3,6 +3,7 @@ import numpy as np
 from adcc.solver.conjugate_gradient import conjugate_gradient, default_print
 from adcc.adc_pp.state2state_transition_dm import state2state_transition_dm
 from adcc.OneParticleOperator import product_trace
+from respondo.jacobi_diis import jacobi_diis
 
 from .MatrixWrapper import MatrixWrapper
 
@@ -39,6 +40,12 @@ def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
         assert res.converged
         solution = wrapper.form_solution(res.solution, rhs)
         return solution
+    elif solver == "jacobi_diis":
+        res = jacobi_diis(wrapper, rhs=rhs_processed, x0=x0, Dinv=wrapper.preconditioner,
+                          explicit_symmetrisation=wrapper.explicit_symmetrisation, callback=callback, **solver_args)
+        assert res.converged
+        solution = wrapper.form_solution(res.solution, rhs)
+        return solution
     elif solver == "cpp" and not fold_doubles:
         res = cpp_solver(
             matrix, rhs_processed, x0, omega, gamma,
@@ -62,7 +69,8 @@ def solve_response(matrix, rhs, omega, gamma, solver="conjugate_gradient",
             solution = solution.real
         return solution
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Combination solver {solver}/folding={fold_doubles}"
+                                  "not implemented.")
 
 
 # from_vecs * B(ops) * to_vecs

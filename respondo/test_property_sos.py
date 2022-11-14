@@ -38,7 +38,8 @@ def run_scf(molecule, basis, backend="pyscf"):
 
 solvers = [
     'conjugate_gradient',
-    'cpp'
+    'cpp',
+    'jacobi_diis',
 ]
 
 cases_folding = []
