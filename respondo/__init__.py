@@ -15,7 +15,7 @@ from .mcd import (
     mcd_bterm
 )
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __all__ = [
     "static_polarizability",
     "real_polarizability",

@@ -21,7 +21,7 @@ setup(
     #     "Issues": "",
     # },
     #
-    version="0.0.3",
+    version="0.0.4",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         # "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
