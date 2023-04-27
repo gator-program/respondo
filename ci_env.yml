@@ -1,6 +1,7 @@
 name: ci-env
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - libblas=*=*mkl
   - adcc >=0.15.5

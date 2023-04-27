@@ -104,7 +104,7 @@ def transition_polarizability_complex(method, ground_state,
 
     # TODO: maybe use non-complex transition_polarizability function?
     # TODO: "recognize" ResponseVector/AmplitudeVector
-    ret = np.zeros((len(from_vecs), len(ops), len(to_vecs)), dtype=np.complex)
+    ret = np.zeros((len(from_vecs), len(ops), len(to_vecs)), dtype=complex)
     for i, from_vec in enumerate(from_vecs):
         for j, to_vec in enumerate(to_vecs):
             # TODO: optimize performance...
@@ -124,7 +124,7 @@ def transition_polarizability_complex(method, ground_state,
             real = tdm_real_real - tdm_imag_imag
             imag = tdm_imag_real + tdm_real_imag
             for k, op in enumerate(ops):
-                ret[i, k, j] = np.complex(
+                ret[i, k, j] = complex(
                     product_trace(real, op), product_trace(imag, op)
                 )
     return np.squeeze(ret)

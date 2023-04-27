@@ -99,7 +99,7 @@ def complex_polarizability(
             for rhs in rhss
         ]
 
-    polarizability = np.zeros((3, 3), dtype=np.complex)
+    polarizability = np.zeros((3, 3), dtype=complex)
     for A in range(3):
         for B in range(A, 3):
             rsp_pos = response_positive[B]
