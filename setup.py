@@ -24,15 +24,14 @@ setup(
     version="0.0.4",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        # "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "License :: Free For Educational Use",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Education",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
     ],
@@ -41,10 +40,10 @@ setup(
     zip_safe=False,
     #
     platforms=["Linux", "Mac OS-X"],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "numpy >= 1.14",
-        "adcc >= 0.15.13",
+        "adcc >= 0.15.15",
     ],
     tests_require=["pytest" , "pytest-cov", "pyscf", "zarr"],
 )
