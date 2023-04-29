@@ -42,3 +42,29 @@ jobs:
           cd examples
           python alpha_complex.py
           python alpha_example.py
+
+  formatting:
+    name: Code style
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+            auto-update-conda: true
+            environment-file: ci_env.yml
+            activate-environment: ci-env
+            miniforge-variant: Mambaforge
+            use-mamba: true
+            miniforge-version: latest
+            python-version: 3.9
+      - name: Conda Info
+        run: |
+          conda info
+          conda list
+      - name: Run ruff and isort
+        run: |
+          ruff respondo
+          isort -rc respondo
