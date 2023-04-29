@@ -4,7 +4,7 @@ channels:
   - nodefaults
 dependencies:
   - libblas=*=*mkl
-  - adcc >=0.15.15
+  - adcc >=0.15.16
   - numpy
   - pytest
   - pytest-cov

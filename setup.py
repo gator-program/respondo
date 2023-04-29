@@ -43,7 +43,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "numpy >= 1.14",
-        "adcc >= 0.15.15",
+        "adcc >= 0.15.16",
     ],
     tests_require=["pytest" , "pytest-cov", "pyscf", "zarr"],
 )
