@@ -36,3 +36,9 @@ jobs:
       - name: Run tests
         run: |
           pytest --rootdir=respondo --cov=respondo
+      - name: Run examples
+        run : |
+          pip install . -v
+          cd examples
+          python alpha_complex.py
+          python alpha_example.py
