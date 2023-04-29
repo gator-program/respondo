@@ -4,18 +4,15 @@ Sum-Over-States (SOS) Expressions for response functions
 
 import numpy as np
 
-
 # TODO: Add latex Sum-Over-States Expressions
+
 
 def sos_static_polarizability(state):
     sos = np.zeros((3, 3))
     for i, dip in enumerate(state.transition_dipole_moment):
         for A in range(3):
             for B in range(A, 3):
-                sos[A, B] += (
-                    2.0 * (dip[A] * dip[B]) /
-                    state.excitation_energy_uncorrected[i]
-                )
+                sos[A, B] += 2.0 * (dip[A] * dip[B]) / state.excitation_energy_uncorrected[i]
                 sos[B, A] = sos[A, B]
     return sos
 
@@ -28,9 +25,7 @@ def sos_c6(state):
 
     for w in freqs:
         sos = sos_complex_polarizability(state, omegas=[0.0], gamma=w)[0]
-        alphas_iso.append(
-            1.0 / 3.0 * (sos[0, 0].real + sos[1, 1].real + sos[2, 2].real)
-        )
+        alphas_iso.append(1.0 / 3.0 * (sos[0, 0].real + sos[1, 1].real + sos[2, 2].real))
     alphas_iso = np.array(alphas_iso)
     derivative = w0 * 2 / (1 + points) ** 2
     integral = np.sum(alphas_iso * alphas_iso * weights * derivative)
@@ -46,13 +41,9 @@ def sos_complex_polarizability(state, omegas=None, gamma=0.01):
         for A in range(3):
             for B in range(A, 3):
                 sos[:, A, B] += dip[A] * dip[B] / (
-                    state.excitation_energy_uncorrected[i]
-                    - omegas
-                    + complex(0, -gamma)
+                    state.excitation_energy_uncorrected[i] - omegas + complex(0, -gamma)
                 ) + dip[B] * dip[A] / (
-                    state.excitation_energy_uncorrected[i]
-                    + omegas
-                    + complex(0, gamma)
+                    state.excitation_energy_uncorrected[i] + omegas + complex(0, gamma)
                 )
                 sos[:, B, A] = sos[:, A, B]
     return np.squeeze(sos)
@@ -79,13 +70,9 @@ def sos_rixs_amplitude(state, final_state=0, omega=0.0, gamma=0.01):
     gs_dip_moment = state.ground_state.dipole_moment[pm]
     for A in range(3):
         for B in range(3):
-            F[A, B] += (tdip_f[A] * gs_dip_moment[B]) / (
-                -omega - complex(0, gamma)
-            ) - (gs_dip_moment[A] * tdip_f[B]) / (
-                omega
-                + complex(0, gamma)
-                - state.excitation_energy_uncorrected[final_state]
-            )
+            F[A, B] += (tdip_f[A] * gs_dip_moment[B]) / (-omega - complex(0, gamma)) - (
+                gs_dip_moment[A] * tdip_f[B]
+            ) / (omega + complex(0, gamma) - state.excitation_energy_uncorrected[final_state])
     return F
 
 

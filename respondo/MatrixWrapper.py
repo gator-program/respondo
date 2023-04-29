@@ -1,20 +1,22 @@
 import numpy as np
-
-from adcc.AmplitudeVector import AmplitudeVector
-from adcc.solver.preconditioner import JacobiPreconditioner
-from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
-from adcc.functions import empty_like, evaluate
 from adcc.AdcMatrix import AdcMatrix
+from adcc.AmplitudeVector import AmplitudeVector
+from adcc.functions import empty_like, evaluate
+from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
+from adcc.solver.preconditioner import JacobiPreconditioner
 
 from .cpp_algebra import ResponseVector, ResponseVectorSymmetrisation
 
 
 class AdcMatrixShifted(AdcMatrix):
     def __init__(self, matrix, shift=0.0, projection=None):
-        super().__init__(matrix.method, matrix.ground_state,
-                         block_orders=matrix.block_orders,
-                         intermediates=matrix.intermediates,
-                         diagonal_precomputed=matrix.diagonal())
+        super().__init__(
+            matrix.method,
+            matrix.ground_state,
+            block_orders=matrix.block_orders,
+            intermediates=matrix.intermediates,
+            diagonal_precomputed=matrix.diagonal(),
+        )
         for et in matrix.extra_terms:
             self += et
         self.projection = projection
@@ -45,8 +47,7 @@ class AdcMatrixShifted(AdcMatrix):
         return out
 
     def block_view(self, block):
-        raise NotImplementedError("Block-view not yet implemented for "
-                                  "shifted ADC matrices.")
+        raise NotImplementedError("Block-view not yet implemented for " "shifted ADC matrices.")
 
 
 class ComplexPolarizationPropagatorMatrix:
@@ -60,14 +61,8 @@ class ComplexPolarizationPropagatorMatrix:
         return (2 * self.matrix.shape[0], 2 * self.matrix.shape[1])
 
     def __matmul__(self, invec):
-        real = (
-            self.matrix @ invec.real - self.omega * invec.real
-            + self.gamma * invec.imag
-        )
-        imag = (
-            self.gamma * invec.real - self.matrix @ invec.imag
-            + self.omega * invec.imag
-        )
+        real = self.matrix @ invec.real - self.omega * invec.real + self.gamma * invec.imag
+        imag = self.gamma * invec.real - self.matrix @ invec.imag + self.omega * invec.imag
         ret = ResponseVector(real, imag)
         return ret
 
@@ -89,15 +84,10 @@ class ComplexPolarizationPropagatorPinv:
         )
 
     def __matmul__(self, invec):
-        real_prec = (
-            -1.0 * self.D22_shifted * invec.real - self.gamma * invec.imag
-        )
-        imag_prec = (
-            -1.0 * self.gamma * invec.real + self.D22_shifted * invec.imag
-        )
+        real_prec = -1.0 * self.D22_shifted * invec.real - self.gamma * invec.imag
+        imag_prec = -1.0 * self.gamma * invec.real + self.D22_shifted * invec.imag
         ret = ResponseVector(
-            real=real_prec / self.D22_shifted_squared,
-            imag=imag_prec / self.D22_shifted_squared
+            real=real_prec / self.D22_shifted_squared, imag=imag_prec / self.D22_shifted_squared
         )
         if self.projection:
             ret -= self.projection(ret)
@@ -113,16 +103,12 @@ class ComplexPolarizationPropagatorMatrixFolded:
 
         # intermediates
         D22_shifted = evaluate(self.matrix.diagonal().pphh - self.omega)
-        self.D22_shifted_squared = evaluate(
-            D22_shifted * D22_shifted + self.gamma**2
-        )
-        self.D22_shifted_div = evaluate(
-            D22_shifted / self.D22_shifted_squared
-        )
+        self.D22_shifted_squared = evaluate(D22_shifted * D22_shifted + self.gamma**2)
+        self.D22_shifted_div = evaluate(D22_shifted / self.D22_shifted_squared)
 
     @property
     def shape(self):
-        m11_sz = self.matrix.axis_lengths['ph']
+        m11_sz = self.matrix.axis_lengths["ph"]
         return (2 * m11_sz, 2 * m11_sz)
 
     def _apply_D_G(self, other):
@@ -150,23 +136,19 @@ class ComplexPolarizationPropagatorMatrixFolded:
         tmp_real = self.matrix.block_apply("pphh_ph", other.real.ph)
         tmp_imag = self.matrix.block_apply("pphh_ph", other.imag.ph)
 
-        out_real = (
-            (rhs_real.pphh - tmp_real) * self.D22_shifted_div
-            - self.gamma * (rhs_imag.pphh - tmp_imag)
-            / self.D22_shifted_squared
-        )
+        out_real = (rhs_real.pphh - tmp_real) * self.D22_shifted_div - self.gamma * (
+            rhs_imag.pphh - tmp_imag
+        ) / self.D22_shifted_squared
         self.isymm.symmetrise([AmplitudeVector(pphh=out_real)])
 
-        out_imag = (
-            (rhs_imag.pphh - tmp_imag) * self.D22_shifted_div
-            + self.gamma * (rhs_real.pphh - tmp_real)
-            / self.D22_shifted_squared
-        )
+        out_imag = (rhs_imag.pphh - tmp_imag) * self.D22_shifted_div + self.gamma * (
+            rhs_real.pphh - tmp_real
+        ) / self.D22_shifted_squared
         self.isymm.symmetrise([AmplitudeVector(pphh=out_imag)])
 
         return ResponseVector(
             AmplitudeVector(ph=other.real.ph, pphh=out_real),
-            AmplitudeVector(ph=other.imag.ph, pphh=out_imag)
+            AmplitudeVector(ph=other.imag.ph, pphh=out_imag),
         )
 
     def __matmul__(self, invec):
@@ -198,8 +180,7 @@ class ComplexPolarizationPropagatorMatrixFolded:
         tmp_single = self.matrix.block_apply("ph_pphh", tmp_double)
         out_imag = evaluate(rhs.imag.ph - tmp_single)
 
-        return ResponseVector(AmplitudeVector(ph=out_real),
-                              AmplitudeVector(ph=out_imag))
+        return ResponseVector(AmplitudeVector(ph=out_real), AmplitudeVector(ph=out_imag))
 
 
 class MatrixFolded:
@@ -211,9 +192,7 @@ class MatrixFolded:
 
         # NOTE: omega is static!
         D22_shifted = evaluate(self.matrix.diagonal().pphh - self.omega)
-        self.D22_shifted_div = evaluate(
-            D22_shifted.ones_like() / D22_shifted
-        )
+        self.D22_shifted_div = evaluate(D22_shifted.ones_like() / D22_shifted)
 
     def _apply_D(self, other):
         tmp = self.matrix.block_apply("pphh_ph", other.ph)
@@ -251,8 +230,9 @@ class MatrixFolded:
 
 
 class MatrixWrapper:
-    def __init__(self, matrix, omega, gamma, fold_doubles, projection=None,
-                 solver="conjugate_gradient"):
+    def __init__(
+        self, matrix, omega, gamma, fold_doubles, projection=None, solver="conjugate_gradient"
+    ):
         self.matrix = matrix
         self.omega = omega
         self.gamma = gamma
@@ -277,13 +257,8 @@ class MatrixWrapper:
     def __select_matrix(self):
         if self.gamma == 0.0 and self.solver in ["conjugate_gradient", "jacobi_diis"]:
             if self.fold_doubles:
-                self._wrapped = MatrixFolded(
-                    self.matrix, self.omega,
-                    self._projection
-                )
-                self._precond = JacobiPreconditioner(
-                    self.matrix, self.omega
-                )
+                self._wrapped = MatrixFolded(self.matrix, self.omega, self._projection)
+                self._precond = JacobiPreconditioner(self.matrix, self.omega)
                 self._precond.diagonal = self.matrix.diagonal().ph
                 self._fold_rhs = self._wrapped.fold_rhs
                 self._unfold_solution = self._wrapped.unfold_solution
@@ -291,12 +266,9 @@ class MatrixWrapper:
             else:
                 # NOTE: adcc implements M + 1shift
                 self._wrapped = AdcMatrixShifted(
-                    self.matrix, shift=-self.omega,
-                    projection=self._projection
+                    self.matrix, shift=-self.omega, projection=self._projection
                 )
-                self._precond = JacobiPreconditioner(
-                    self.matrix, self.omega
-                )
+                self._precond = JacobiPreconditioner(self.matrix, self.omega)
                 self._symm = IndexSymmetrisation(self.matrix)
         elif self.gamma != 0.0 or self.solver == "cpp":
             self._complex = True
@@ -305,8 +277,7 @@ class MatrixWrapper:
                     self.matrix, self.omega, self.gamma
                 )
                 self._precond = ComplexPolarizationPropagatorPinv(
-                    AmplitudeVector(ph=self.matrix.diagonal().ph),
-                    self.omega, self.gamma
+                    AmplitudeVector(ph=self.matrix.diagonal().ph), self.omega, self.gamma
                 )
                 self._fold_rhs = self._wrapped.fold_rhs
                 self._unfold_solution = self._wrapped.unfold_solution

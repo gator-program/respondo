@@ -1,22 +1,16 @@
 import numpy as np
-
-from adcc.adc_pp.state2state_transition_dm import state2state_transition_dm
-from adcc.OneParticleOperator import product_trace
+from adcc import AmplitudeVector
 from adcc.adc_pp.modified_transition_moments import modified_transition_moments
 from adcc.Excitation import Excitation
-from adcc.workflow import construct_adcmatrix
 from adcc.functions import einsum
-from adcc import AmplitudeVector
+from adcc.workflow import construct_adcmatrix
 
-from .cpp_algebra import ResponseVector
-from .solve_response import solve_response, transition_polarizability
 from .misc import select_property_method
+from .solve_response import solve_response, transition_polarizability
 
 
 def compute_adc1_f1_mag(magdip, ground_state):
-    mtm = magdip.ov + einsum(
-        "ijab,jb->ia", ground_state.t2("o1o1v1v1"), magdip.ov
-    )
+    mtm = magdip.ov + einsum("ijab,jb->ia", ground_state.t2("o1o1v1v1"), magdip.ov)
     return AmplitudeVector(ph=mtm)
 
 
@@ -28,11 +22,7 @@ def compute_adc2_f1_mag(magdip, ground_state):
     return (
         d.ov
         + 1.0 * einsum("ijab,jb->ia", t2, d.ov + 0.5 * einsum("jkbc,kc->jb", t2, d.ov))
-        + 0.5
-        * (
-            einsum("ij,ja->ia", p0.oo, d.ov)
-            - 1.0 * einsum("ib,ab->ia", d.ov, p0.vv)
-        )
+        + 0.5 * (einsum("ij,ja->ia", p0.oo, d.ov) - 1.0 * einsum("ib,ab->ia", d.ov, p0.vv))
         - 1.0 * einsum("ib,ab->ia", p0.ov, d.vv)
         - 1.0 * einsum("ij,ja->ia", d.oo, p0.ov)
         + 1.0 * einsum("ijab,jb->ia", td2, d.ov)
@@ -65,15 +55,10 @@ def mcd_bterm(state, property_method=None, **solver_args):
     # Magnetic dipole right-hand-side
     # TODO: temporary hack, add to adcc...
     if property_method.name == "adc0":
-        rhss_mag = modified_transition_moments(
-            property_method, mp, dips_mag
-        )
+        rhss_mag = modified_transition_moments(property_method, mp, dips_mag)
         rhss_mag = [-1.0 * rhs_mag for rhs_mag in rhss_mag]
     elif property_method.name == "adc1":
-        rhss_mag = [
-            -1.0 * compute_adc1_f1_mag(mag, mp)
-            for mag in dips_mag
-        ]
+        rhss_mag = [-1.0 * compute_adc1_f1_mag(mag, mp) for mag in dips_mag]
     elif property_method.name == "adc2":
         rhss_mag = [
             -1.0
@@ -87,10 +72,7 @@ def mcd_bterm(state, property_method=None, **solver_args):
         raise NotImplementedError("")
 
     response_mag = [
-        solve_response(
-            matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args
-        )
-        for rhs_mag in rhss_mag
+        solve_response(matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args) for rhs_mag in rhss_mag
     ]
 
     v_f = state.excitation_vector
@@ -107,19 +89,12 @@ def mcd_bterm(state, property_method=None, **solver_args):
 
     # matrix_shifted.projection = projection
     response_el = [
-        solve_response(
-            matrix, rhs_el, omega=e_f, gamma=0.0, projection=projection,
-            **solver_args
-        )
+        solve_response(matrix, rhs_el, omega=e_f, gamma=0.0, projection=projection, **solver_args)
         for rhs_el in rhss_el
     ]
 
-    term1 = -transition_polarizability(
-        property_method, mp, response_mag, dips_el, v_f
-    )
-    term2 = -transition_polarizability(
-        property_method, mp, v_f, dips_mag, response_el
-    )
+    term1 = -transition_polarizability(property_method, mp, response_mag, dips_el, v_f)
+    term2 = -transition_polarizability(property_method, mp, v_f, dips_mag, response_el)
 
     # Levi-Civita tensor
     epsilon = np.zeros((3, 3, 3))

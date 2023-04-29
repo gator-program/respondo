@@ -1,14 +1,11 @@
-from adcc.adc_pp.state2state_transition_dm import state2state_transition_dm
-from adcc.OneParticleOperator import product_trace
+import numpy as np
 from adcc.adc_pp.modified_transition_moments import modified_transition_moments
 from adcc.Excitation import Excitation
 from adcc.workflow import construct_adcmatrix
 
 from .cpp_algebra import ResponseVector
-from .solve_response import solve_response, transition_polarizability_complex
 from .misc import select_property_method
-
-import numpy as np
+from .solve_response import solve_response, transition_polarizability_complex
 
 _comps = ["x", "y", "z"]
 
@@ -37,11 +34,7 @@ def rixs(state, omega, gamma, property_method=None, rotating_wave=True, **solver
     rhss = modified_transition_moments(property_method, mp, dips)
 
     response = [
-        solve_response(
-            matrix, ResponseVector(rhs),
-            omega, gamma, **solver_args
-        )
-        for rhs in rhss
+        solve_response(matrix, ResponseVector(rhs), omega, gamma, **solver_args) for rhs in rhss
     ]
     # build RIXS transition polarizatbilty F for final state
     F = transition_polarizability_complex(
@@ -55,9 +48,7 @@ def rixs(state, omega, gamma, property_method=None, rotating_wave=True, **solver
     # TODO: tests
     if not rotating_wave:
         response_prime = [
-            solve_response(
-                matrix, ResponseVector(rhs), -omega_prime, -gamma, **solver_args
-            )
+            solve_response(matrix, ResponseVector(rhs), -omega_prime, -gamma, **solver_args)
             for rhs in rhss
         ]
         F_prime = transition_polarizability_complex(

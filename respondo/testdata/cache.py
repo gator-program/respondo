@@ -1,7 +1,7 @@
 import os
+
 import numpy as np
 import zarr
-
 
 cases = {
     "h2o_sto3g_adc1": 10,
@@ -20,8 +20,7 @@ class MockExcitedStates:
         for k in exci.attrs:
             setattr(self, k, exci.attrs[k])
         for k in exci:
-            setattr(self, k,
-                    np.asarray(exci[k]))
+            setattr(self, k, np.asarray(exci[k]))
         self.ground_state = self.zr.ground_state
 
 
@@ -32,7 +31,7 @@ def read_full_diagonalization():
         zarr_file = os.path.join(thisdir, f"{case}.zarr")
         if not os.path.isdir(zarr_file):
             continue
-        z = zarr.open(zarr_file, mode='r')
+        z = zarr.open(zarr_file, mode="r")
         ret[case] = MockExcitedStates(z)
     return ret
 
