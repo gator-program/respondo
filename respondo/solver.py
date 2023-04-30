@@ -1,29 +1,28 @@
 import sys
+
 import numpy as np
 import scipy.linalg as la
-
 from adcc import lincomb
 from adcc.AmplitudeVector import AmplitudeVector
-
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 
+from .cpp_algebra import ResponseVector
 from .MatrixWrapper import (
+    ComplexPolarizationPropagatorMatrixFolded,
     ComplexPolarizationPropagatorPinv,
     MatrixWrapper,
-    ComplexPolarizationPropagatorMatrixFolded,
 )
-from .cpp_algebra import ResponseVector
 
 
 class State:
     def __init__(self):
-        self.solution = None       # Current approximation to the solution
-        self.residual = None       # Current residual
+        self.solution = None  # Current approximation to the solution
+        self.residual = None  # Current residual
         self.residual_norm = None  # Current residual norm
-        self.converged = False     # Flag whether iteration is converged
-        self.n_iter = 0            # Number of iterations
-        self.n_applies = 0         # Number of applies
-        self.n_ss_vectors = 0      # Number of subspace vectors
+        self.converged = False  # Flag whether iteration is converged
+        self.n_iter = 0  # Number of iterations
+        self.n_applies = 0  # Number of applies
+        self.n_ss_vectors = 0  # Number of subspace vectors
 
 
 def default_print(state, identifier, file=sys.stdout):
@@ -31,9 +30,12 @@ def default_print(state, identifier, file=sys.stdout):
         print("Niter residual_norm    n_vec", file=file)
     elif identifier == "next_iter":
         fmt = "{n_iter:3d}  {residual:12.5g}    {n_vec:3d}"
-        print(fmt.format(n_iter=state.n_iter,
-                         residual=np.max(state.residual_norm),
-                         n_vec=state.n_ss_vectors), file=file)
+        print(
+            fmt.format(
+                n_iter=state.n_iter, residual=np.max(state.residual_norm), n_vec=state.n_ss_vectors
+            ),
+            file=file,
+        )
     elif identifier == "is_converged":
         print("=== Converged ===", file=file)
         print("    Number of matrix applies:   ", state.n_applies)
@@ -98,23 +100,30 @@ def filter_by_overlap(subspace, min_norm, max_add=None):
     return new_subspace
 
 
-def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
-               explicit_symmetrisation=IndexSymmetrisation,
-               residual_min_norm=None,
-               Pinv=None,
-               max_subspace=None, max_iter=100, callback=default_print):
+def cpp_solver(
+    matrix,
+    rhs,
+    x0,
+    omega,
+    gamma,
+    conv_tol=1e-9,
+    explicit_symmetrisation=IndexSymmetrisation,
+    residual_min_norm=None,
+    Pinv=None,
+    max_subspace=None,
+    max_iter=100,
+    callback=default_print,
+):
     if callback is None:
+
         def callback(state, identifier):
             pass
 
-    if explicit_symmetrisation is not None and \
-            isinstance(explicit_symmetrisation, type):
+    if explicit_symmetrisation is not None and isinstance(explicit_symmetrisation, type):
         explicit_symmetrisation = explicit_symmetrisation(matrix)
 
     if Pinv is None:
-        Pinv = ComplexPolarizationPropagatorPinv(
-            matrix.diagonal(), omega, gamma
-        )
+        Pinv = ComplexPolarizationPropagatorPinv(matrix.diagonal(), omega, gamma)
 
     def is_converged(state):
         state.converged = state.residual_norm < conv_tol
@@ -173,10 +182,7 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
                 Mss[j, i] = Mss[i, j]
 
         gamma_mat = gamma * np.eye(Mss.shape[0])
-        full_Mss = np.block([
-            [Mss, gamma_mat],
-            [gamma_mat, -Mss]
-        ])
+        full_Mss = np.block([[Mss, gamma_mat], [gamma_mat, -Mss]])
 
         # TODO: only works correctly for purely real rhs
         rhs_SS = rhs_SS_cont[:n_ss_vec]
@@ -185,10 +191,7 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
 
         omega_SS = omega * np.eye(n_ss_vec)
         omega_zeros = np.zeros_like(omega_SS)
-        omega_SS = np.block([
-            [omega_SS, omega_zeros],
-            [omega_zeros, -omega_SS]
-        ])
+        omega_SS = np.block([[omega_SS, omega_zeros], [omega_zeros, -omega_SS]])
 
         # solve the subspace equation
         Msso = full_Mss - omega_SS
@@ -197,20 +200,12 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
         # Compute residuals
         Axfull_real = lincomb(x[:n_ss_vec], Ax_cont, evaluate=True)
         Axfull_imag = lincomb(x[n_ss_vec:], Ax_cont, evaluate=True)
-        asym_tmp_real = lincomb(
-            x[:n_ss_vec] * omega, SS, evaluate=True
-        )
-        asym_tmp_imag = lincomb(
-            x[n_ss_vec:] * omega, SS, evaluate=True
-        )
+        asym_tmp_real = lincomb(x[:n_ss_vec] * omega, SS, evaluate=True)
+        asym_tmp_imag = lincomb(x[n_ss_vec:] * omega, SS, evaluate=True)
         gamma_real = lincomb(x[n_ss_vec:] * gamma, SS, evaluate=True)
         gamma_imag = lincomb(x[:n_ss_vec] * gamma, SS, evaluate=True)
-        residual_real = (
-            Axfull_real - asym_tmp_real - rhs.real + gamma_real
-        )
-        residual_imag = (
-            -1.0 * Axfull_imag + asym_tmp_imag + rhs.imag + gamma_imag
-        )
+        residual_real = Axfull_real - asym_tmp_real - rhs.real + gamma_real
+        residual_imag = -1.0 * Axfull_imag + asym_tmp_imag + rhs.imag + gamma_imag
 
         residual = ResponseVector(residual_real, residual_imag)
         state.residual_norm = np.sqrt(residual @ residual)
@@ -219,18 +214,15 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
         if is_converged(state):
             state.converged = True
             callback(state, "is_converged")
-            real_part = lincomb(
-                np.transpose(x[:n_ss_vec]), SS, evaluate=True
-            )
-            imag_part = lincomb(
-                np.transpose(x[n_ss_vec:]), SS, evaluate=True
-            )
+            real_part = lincomb(np.transpose(x[:n_ss_vec]), SS, evaluate=True)
+            imag_part = lincomb(np.transpose(x[n_ss_vec:]), SS, evaluate=True)
             state.solution = ResponseVector(real_part, imag_part)
             return state
 
         if state.n_iter == max_iter:
-            raise la.LinAlgError("Maximum number of iterations "
-                                 f"(== {max_iter}) reached in cpp_solver.")
+            raise la.LinAlgError(
+                "Maximum number of iterations " f"(== {max_iter}) reached in cpp_solver."
+            )
 
         if Pinv:
             precond = Pinv @ residual
@@ -264,12 +256,10 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
 
         if n_ss_vec >= max_subspace:
             real_part = lincomb(
-                np.transpose(x[:n_ss_vec - n_ss_added]),
-                SS[:-n_ss_added], evaluate=True
+                np.transpose(x[: n_ss_vec - n_ss_added]), SS[:-n_ss_added], evaluate=True
             )
             imag_part = lincomb(
-                np.transpose(x[n_ss_vec - n_ss_added:]),
-                SS[:-n_ss_added], evaluate=True
+                np.transpose(x[n_ss_vec - n_ss_added :]), SS[:-n_ss_added], evaluate=True
             )
             SS = [real_part, imag_part]
             # SS = filter_by_overlap(
@@ -282,17 +272,26 @@ def cpp_solver(matrix, rhs, x0, omega, gamma, conv_tol=1e-9,
             state.n_ss_vec = n_ss_vec
 
 
-def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
-                      residual_min_norm=None,
-                      max_subspace=None, max_iter=100, callback=default_print):
+def cpp_solver_folded(
+    wrapper,
+    rhs,
+    x0,
+    omega,
+    gamma,
+    conv_tol=1e-9,
+    residual_min_norm=None,
+    max_subspace=None,
+    max_iter=100,
+    callback=default_print,
+):
     if not isinstance(wrapper, MatrixWrapper):
         raise TypeError()
     matrix_folded = wrapper._wrapped
-    if not isinstance(matrix_folded,
-                      ComplexPolarizationPropagatorMatrixFolded):
+    if not isinstance(matrix_folded, ComplexPolarizationPropagatorMatrixFolded):
         raise TypeError()
 
     if callback is None:
+
         def callback(state, identifier):
             pass
 
@@ -347,7 +346,7 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
         if n_block > 0:
             state.n_applies += n_block
             AxBlock = [
-                AmplitudeVector(ph=wrapper.matrix.block_apply('ph_ph', sv.ph))
+                AmplitudeVector(ph=wrapper.matrix.block_apply("ph_ph", sv.ph))
                 for sv in SS[-n_block:]
             ]
         Ax_cont.extend(AxBlock)
@@ -366,10 +365,7 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
                 Gss[i, j] = SS[i] @ Gx_cont[j]
                 Gss[j, i] = Gss[i, j]
 
-        full_Mss = np.block([
-            [Mss, Gss],
-            [Gss, -Mss]
-        ])
+        full_Mss = np.block([[Mss, Gss], [Gss, -Mss]])
 
         rhs_SS_real = rhs_SS_real_cont[:n_ss_vec]
         rhs_SS_imag = rhs_SS_imag_cont[:n_ss_vec]
@@ -386,8 +382,8 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
         gamma_real = lincomb(x[n_ss_vec:], Gx_cont, evaluate=True)
         gamma_imag = lincomb(x[:n_ss_vec], Gx_cont, evaluate=True)
 
-        residual_real = (Axfull_real - rhs.real + gamma_real)
-        residual_imag = (-1.0 * Axfull_imag - rhs.imag + gamma_imag)
+        residual_real = Axfull_real - rhs.real + gamma_real
+        residual_imag = -1.0 * Axfull_imag - rhs.imag + gamma_imag
 
         residual = ResponseVector(residual_real, residual_imag)
         state.residual_norm = np.sqrt(residual @ residual)
@@ -396,18 +392,15 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
         if is_converged(state):
             state.converged = True
             callback(state, "is_converged")
-            real_part = lincomb(
-                np.transpose(x[:n_ss_vec]), SS, evaluate=True
-            )
-            imag_part = lincomb(
-                np.transpose(x[n_ss_vec:]), SS, evaluate=True
-            )
+            real_part = lincomb(np.transpose(x[:n_ss_vec]), SS, evaluate=True)
+            imag_part = lincomb(np.transpose(x[n_ss_vec:]), SS, evaluate=True)
             state.solution = ResponseVector(real_part, imag_part)
             return state
 
         if state.n_iter == max_iter:
-            raise la.LinAlgError("Maximum number of iterations "
-                                 f"(== {max_iter}) reached in cpp_solver.")
+            raise la.LinAlgError(
+                "Maximum number of iterations " f"(== {max_iter}) reached in cpp_solver."
+            )
 
         if Pinv:
             precond = Pinv @ residual
@@ -439,12 +432,10 @@ def cpp_solver_folded(wrapper, rhs, x0, omega, gamma, conv_tol=1e-9,
 
         if n_ss_vec >= max_subspace:
             real_part = lincomb(
-                np.transpose(x[:n_ss_vec - n_ss_added]),
-                SS[:-n_ss_added], evaluate=True
+                np.transpose(x[: n_ss_vec - n_ss_added]), SS[:-n_ss_added], evaluate=True
             )
             imag_part = lincomb(
-                np.transpose(x[n_ss_vec - n_ss_added:]),
-                SS[:-n_ss_added], evaluate=True
+                np.transpose(x[n_ss_vec - n_ss_added :]), SS[:-n_ss_added], evaluate=True
             )
             SS = [real_part, imag_part]
             # SS = filter_by_overlap(

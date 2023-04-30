@@ -1,7 +1,0 @@
-name: build-env
-channels:
-  - defaults
-dependencies:
-  - conda-build
-  - anaconda-client
-  - conda-verify

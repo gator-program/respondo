@@ -14,15 +14,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - {version: '3.6', os: ubuntu-latest}
+          - {version: '3.10', os: ubuntu-latest}
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
-            auto-update-conda: true
-            environment-file: ci_env.yml
-            activate-environment: ci-env
-            python-version: ${{ matrix.version }}
+          auto-update-conda: true
+          environment-file: ci_env.yml
+          activate-environment: ci-env
+          miniforge-variant: Mambaforge
+          use-mamba: true
+          miniforge-version: latest
+          python-version: ${{ matrix.version }}
       - name: Conda info
         run: |
           conda info
@@ -33,7 +36,35 @@ jobs:
       - name: Run tests
         run: |
           pytest --rootdir=respondo --cov=respondo
-      # - name: Coveralls Upload
-      #   uses: coverallsapp/github-action@master
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run examples
+        run : |
+          pip install . -v
+          cd examples
+          python alpha_complex.py
+          python alpha_example.py
+
+  formatting:
+    name: Code style
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+            auto-update-conda: true
+            environment-file: ci_env.yml
+            activate-environment: ci-env
+            miniforge-variant: Mambaforge
+            use-mamba: true
+            miniforge-version: latest
+            python-version: 3.9
+      - name: Conda Info
+        run: |
+          conda info
+          conda list
+      - name: Run ruff and isort
+        run: |
+          ruff respondo
+          isort -rc respondo

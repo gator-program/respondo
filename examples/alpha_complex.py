@@ -7,7 +7,6 @@ from pyscf import gto, scf
 
 import numpy as np
 
-import matplotlib.pyplot as plt
 
 from respondo import complex_polarizability
 from respondo.polarizability import one_photon_absorption_cross_section
@@ -45,7 +44,11 @@ all_pol = [
 all_pol = np.array(all_pol)
 sigmas = one_photon_absorption_cross_section(all_pol, omegas)
 
-plt.plot(omegas, sigmas, "o")
-plt.xlabel("frequency [a.u.]")
-plt.ylabel(r"$\sigma(\omega)$ [a.u.]")
-plt.show()
+try:
+    import matplotlib.pyplot as plt
+    plt.plot(omegas, sigmas, "o")
+    plt.xlabel("frequency [a.u.]")
+    plt.ylabel(r"$\sigma(\omega)$ [a.u.]")
+    plt.show()
+except ModuleNotFoundError:
+    print("Please install matplotlib to plot the results.")

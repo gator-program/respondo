@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import sys
 from itertools import product
+
 import numpy as np
 import scipy.linalg as la
-
 from adcc import copy, evaluate
 from adcc.solver.explicit_symmetrisation import IndexSymmetrisation
 

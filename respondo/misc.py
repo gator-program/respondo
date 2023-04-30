@@ -20,13 +20,13 @@ def expand_test_templates(arguments, template_prefix="template_"):
         if isinstance(args, tuple):
             parsed_args.append(args)
         else:
-            parsed_args.append((args, ))
+            parsed_args.append((args,))
 
     def inner_decorator(cls):
         for fctn in dir(cls):
             if not fctn.startswith(template_prefix):
                 continue
-            basename = fctn[len(template_prefix):]
+            basename = fctn[len(template_prefix) :]
             for args in parsed_args:
                 newname = "test_" + basename + "_"
                 newname += "_".join(str(a) for a in args)
@@ -37,8 +37,10 @@ def expand_test_templates(arguments, template_prefix="template_"):
                 # (which are evaluated at definition-time)
                 def caller(self, fctn=fctn, args=args):
                     return getattr(self, fctn)(*args)
+
                 setattr(cls, newname, caller)
         return cls
+
     return inner_decorator
 
 
@@ -58,6 +60,7 @@ def normalise_sign(*items, atol=0):
     """
     Normalise the sign of a list of numpy arrays
     """
+
     def sign(item):
         flat = np.ravel(item)
         flat = flat[np.abs(flat) > atol]
@@ -65,5 +68,6 @@ def normalise_sign(*items, atol=0):
             return 1
         else:
             return np.sign(flat[0])
+
     desired_sign = sign(items[0])
     return tuple(desired_sign / sign(item) * item for item in items)
