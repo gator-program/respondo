@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "respondo"
 description = "Library for response functions using ADC"
-version = "0.0.4"
+version = "0.0.5"
 readme = "README.md"
 authors = [
     { name = "Antonia Papapostolou, Maximilian Scheurer" }

@@ -9,7 +9,7 @@ from .polarizability import (
 from .rixs import rixs
 from .tpa import tpa_resonant
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 __all__ = [
     "static_polarizability",
     "real_polarizability",
