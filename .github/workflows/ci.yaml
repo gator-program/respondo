@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - {version: '3.10', os: ubuntu-latest}
+          - {version: '3.11', os: ubuntu-latest}
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
@@ -22,8 +22,6 @@ jobs:
           auto-update-conda: true
           environment-file: ci_env.yml
           activate-environment: ci-env
-          miniforge-variant: Mambaforge
-          use-mamba: true
           miniforge-version: latest
           python-version: ${{ matrix.version }}
       - name: Conda info
@@ -56,10 +54,8 @@ jobs:
             auto-update-conda: true
             environment-file: ci_env.yml
             activate-environment: ci-env
-            miniforge-variant: Mambaforge
-            use-mamba: true
             miniforge-version: latest
-            python-version: 3.9
+            python-version: 3.11
       - name: Conda Info
         run: |
           conda info
