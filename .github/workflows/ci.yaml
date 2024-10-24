@@ -66,5 +66,5 @@ jobs:
           conda list
       - name: Run ruff and isort
         run: |
-          ruff respondo
+          ruff check respondo
           isort -rc respondo
