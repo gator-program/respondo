@@ -77,6 +77,9 @@ respondo = [
     "py.typed"
 ]
 
+[tool.pytest.ini_options]
+addopts = "-v"
+
 [tool.isort]
 profile = "black"
 

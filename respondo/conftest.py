@@ -2,7 +2,6 @@ import os
 
 # import pytest
 
-
 # taken from adcc (written by mfherbst)
 def update_testdata(session):
     import subprocess
@@ -24,5 +23,6 @@ def pytest_addoption(parser):
 
 
 def pytest_collection(session):
+    print("CONFTEST LOADED")
     if not session.config.option.skip_update:
         update_testdata(session)
