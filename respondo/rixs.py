@@ -14,7 +14,7 @@ _comps = ["x", "y", "z"]
 
 
 def rixs_scattering_strength(F, omega, omega_prime, theta=90 * np.pi / 180):
-    strength = np.complex(0, 0)
+    strength = 0j
     cc = np.conj
     for A in range(3):
         for B in range(3):
@@ -72,8 +72,8 @@ def rixs(state, omega, gamma, property_method=None, rotating_wave=True, **solver
         mom_product = np.einsum(
             "A,B->AB", state.transition_dipole_moment, mp.dipole_moment(property_method.level)
         )
-        gs_term = +mom_product / (-(omega + np.complex(0, gamma))) - mom_product.T / (
-            omega_prime + np.complex(0, gamma)
+        gs_term = +mom_product / (-(omega + 1j*gamma)) - mom_product.T / (
+            omega_prime + 1j*gamma
         )
         F += gs_term
 

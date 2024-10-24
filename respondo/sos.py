@@ -41,18 +41,18 @@ def sos_c6(state):
 def sos_complex_polarizability(state, omegas=None, gamma=0.01):
     if omegas is None:
         omegas = [0.0]
-    sos = np.zeros((len(omegas), 3, 3), dtype=np.complex)
+    sos = np.zeros((len(omegas), 3, 3), dtype=complex)
     for i, dip in enumerate(state.transition_dipole_moment):
         for A in range(3):
             for B in range(A, 3):
                 sos[:, A, B] += dip[A] * dip[B] / (
                     state.excitation_energy_uncorrected[i]
                     - omegas
-                    + np.complex(0, -gamma)
+                    - 1j*gamma
                 ) + dip[B] * dip[A] / (
                     state.excitation_energy_uncorrected[i]
                     + omegas
-                    + np.complex(0, gamma)
+                    + 1j*gamma
                 )
                 sos[:, B, A] = sos[:, A, B]
     return np.squeeze(sos)
@@ -62,7 +62,7 @@ def sos_rixs_amplitude(state, final_state=0, omega=0.0, gamma=0.01):
     """
     SOS for RIXS amplitude in the rotating wave approximation
     """
-    F = np.zeros((3, 3), dtype=np.complex)
+    F = np.zeros((3, 3), dtype=complex)
     s2s_tdm = state.transition_dipole_moment_s2s
     for ee in range(state.excitation_energy.size):
         tdm_fn = s2s_tdm[ee, final_state]
@@ -71,7 +71,7 @@ def sos_rixs_amplitude(state, final_state=0, omega=0.0, gamma=0.01):
                 F[A, B] += (
                     tdm_fn[A]
                     * state.transition_dipole_moment[ee][B]
-                    / (state.excitation_energy_uncorrected[ee] - omega - np.complex(0, gamma))
+                    / (state.excitation_energy_uncorrected[ee] - omega - 1j*gamma)
                 )
     # ground state coupling
     tdip_f = state.transition_dipole_moment[final_state]
@@ -80,10 +80,10 @@ def sos_rixs_amplitude(state, final_state=0, omega=0.0, gamma=0.01):
     for A in range(3):
         for B in range(3):
             F[A, B] += (tdip_f[A] * gs_dip_moment[B]) / (
-                -omega - np.complex(0, gamma)
+                -omega - 1j*gamma
             ) - (gs_dip_moment[A] * tdip_f[B]) / (
                 omega
-                + np.complex(0, gamma)
+                + 1j*gamma
                 - state.excitation_energy_uncorrected[final_state]
             )
     return F
