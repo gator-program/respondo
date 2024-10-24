@@ -2,7 +2,7 @@
 
 # taken from adcc repository, written by @mfherbst
 
-SOURCE="https://q-chem.de/respondo_testdata"
+SOURCE="https://wwwagdreuw.iwr.uni-heidelberg.de/respondo_test_data/0.1.0"
 DATAFILES=(
 	data_0.0.1.tar.gz
 )
@@ -17,7 +17,7 @@ echo "Updating testdata ... please wait."
 download() {
 	if which wget &> /dev/null; then
 	    echo $@
-		wget -w 1 -qN --show-progress $@
+		wget -w 1 -qN --show-progress --no-check-certificate $@
 	else
 		echo "wget not installed" >&2
 		exit 1
