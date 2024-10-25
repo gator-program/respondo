@@ -23,6 +23,5 @@ def pytest_addoption(parser):
 
 
 def pytest_collection(session):
-    print("CONFTEST LOADED")
     if not session.config.option.skip_update:
         update_testdata(session)
