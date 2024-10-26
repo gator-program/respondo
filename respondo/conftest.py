@@ -2,7 +2,6 @@ import os
 
 # import pytest
 
-
 # taken from adcc (written by mfherbst)
 def update_testdata(session):
     import subprocess

@@ -14,16 +14,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - {version: '3.10', os: ubuntu-latest}
+          - {version: '3.11', os: ubuntu-latest}
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           environment-file: ci_env.yml
           activate-environment: ci-env
-          miniforge-variant: Mambaforge
-          use-mamba: true
           miniforge-version: latest
           python-version: ${{ matrix.version }}
       - name: Conda info
@@ -35,7 +33,7 @@ jobs:
           pip install pyscf
       - name: Run tests
         run: |
-          pytest --rootdir=respondo --cov=respondo
+          python -m pytest respondo --cov=respondo
       - name: Run examples
         run : |
           pip install . -v
@@ -50,21 +48,19 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
             auto-update-conda: true
             environment-file: ci_env.yml
             activate-environment: ci-env
-            miniforge-variant: Mambaforge
-            use-mamba: true
             miniforge-version: latest
-            python-version: 3.9
+            python-version: 3.11
       - name: Conda Info
         run: |
           conda info
           conda list
       - name: Run ruff and isort
         run: |
-          ruff respondo
+          ruff check respondo
           isort -rc respondo
