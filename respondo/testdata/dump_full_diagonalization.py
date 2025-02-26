@@ -47,7 +47,7 @@ def main():
         z.create_group("excitation")
         exci = z["excitation"]
         propkeys = state.excitation_property_keys
-        propkeys.extend(state.excitation_energy_corrections.keys())
+        propkeys.extend([k.name for k in state._excitation_energy_corrections])
         for key in propkeys:
             try:
                 d = getattr(state, key)
