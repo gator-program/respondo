@@ -9,6 +9,6 @@ dependencies:
   - pytest
   - pytest-cov
   - coveralls
-  - zarr
+  - zarr>=2,<3
   - ruff
   - isort
