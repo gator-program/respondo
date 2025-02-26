@@ -112,19 +112,19 @@ def sos_mcd_bterm(state, final_state=0):
         for A in range(3):
             for B in range(3):
                 term1[A, B] -= (
-                    state.transition_magnetic_dipole_moment[k][A]
-                    * s2s_tdm[k, final_state, B]
+                    state.transition_magnetic_dipole_moment[k][B]
+                    * s2s_tdm[final_state, k, A]
                     / (state.excitation_energy_uncorrected[k])
                 )
                 if k != final_state:
                     term2[A, B] += (
-                        state.transition_dipole_moment[k][B]
-                        * s2s_tdm_mag[k, final_state, A]
+                        state.transition_dipole_moment[k][A]
+                        * s2s_tdm_mag[final_state, k, B]
                         / (state.excitation_energy_uncorrected[k] - e_f)
                     )
 
     epsilon = np.zeros((3, 3, 3))
     epsilon[0, 1, 2] = epsilon[1, 2, 0] = epsilon[2, 0, 1] = 1
     epsilon[2, 1, 0] = epsilon[0, 2, 1] = epsilon[1, 0, 2] = -1
-    B = np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + term2)
+    B = -1.0 * np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + term2)
     return B
