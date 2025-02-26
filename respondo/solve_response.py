@@ -89,6 +89,8 @@ def solve_response(
         )
 
 
+# TODO: fix transition_polarizability and transition_polarizability_complex
+# by swapping from_vecs and to_vecs (for ADC it is defined the other way around)
 # from_vecs * B(ops) * to_vecs
 def transition_polarizability(method, ground_state, from_vecs, ops, to_vecs):
     if not isinstance(from_vecs, list):
