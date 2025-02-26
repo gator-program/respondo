@@ -1,8 +1,6 @@
 import numpy as np
-from adcc import AmplitudeVector
 from adcc.adc_pp.modified_transition_moments import modified_transition_moments
 from adcc.Excitation import Excitation
-from adcc.functions import einsum
 from adcc.workflow import construct_adcmatrix
 
 from .misc import select_property_method
