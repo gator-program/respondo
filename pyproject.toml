@@ -42,7 +42,7 @@ test = [
   "pytest-cov",
   "pytest-runner",
   "pyscf",
-  "zarr",
+  "zarr>=2,<3",
 ]
 
 [tool.setuptools]
