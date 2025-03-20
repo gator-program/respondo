@@ -99,6 +99,8 @@ def sos_tpa_matrix_resonant(state, final_state=0):
 
 
 def sos_mcd_bterm(state, final_state=0):
+    # Note: there exists only reference data for the gauge origin placed at the
+    # origin of the Cartesian coordinate system!
     term1 = np.zeros((3, 3))
     term2 = np.zeros_like(term1)
 
@@ -126,5 +128,5 @@ def sos_mcd_bterm(state, final_state=0):
     epsilon = np.zeros((3, 3, 3))
     epsilon[0, 1, 2] = epsilon[1, 2, 0] = epsilon[2, 0, 1] = 1
     epsilon[2, 1, 0] = epsilon[0, 2, 1] = epsilon[1, 0, 2] = -1
-    B = -1.0 * np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + term2)
+    B = np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + term2)
     return B
