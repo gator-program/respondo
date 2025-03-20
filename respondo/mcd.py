@@ -23,7 +23,8 @@ def mcd_bterm(state, property_method=None, gauge_origin="origin", **solver_args)
 
     # the minus sign is required due to the anti-hermiticity of the magnetic dipole operator
     response_mag = [
-        -1.0 * solve_response(matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args) for rhs_mag in rhss_mag
+        -1.0 * solve_response(matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args)
+        for rhs_mag in rhss_mag
     ]
 
     v_f = state.excitation_vector
