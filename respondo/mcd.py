@@ -7,7 +7,7 @@ from .misc import select_property_method
 from .solve_response import solve_response, transition_polarizability
 
 
-def mcd_bterm(state, property_method=None, **solver_args):
+def mcd_bterm(state, property_method=None, gauge_origin="origin", **solver_args):
     if not isinstance(state, Excitation):
         raise TypeError()
     matrix = construct_adcmatrix(state.parent_state.matrix)
@@ -17,13 +17,14 @@ def mcd_bterm(state, property_method=None, **solver_args):
     mp = matrix.ground_state
 
     dips_el = hf.operators.electric_dipole
-    dips_mag = hf.operators.magnetic_dipole
+    dips_mag = hf.operators.magnetic_dipole(gauge_origin)
     rhss_el = modified_transition_moments(property_method, mp, dips_el)
     rhss_mag = modified_transition_moments(property_method, mp, dips_mag)
 
     # the minus sign is required due to the anti-hermiticity of the magnetic dipole operator
     response_mag = [
-        -1.0 * solve_response(matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args) for rhs_mag in rhss_mag
+        -1.0 * solve_response(matrix, rhs_mag, omega=0.0, gamma=0.0, **solver_args)
+        for rhs_mag in rhss_mag
     ]
 
     v_f = state.excitation_vector
@@ -53,7 +54,5 @@ def mcd_bterm(state, property_method=None, **solver_args):
     epsilon[2, 1, 0] = epsilon[0, 2, 1] = epsilon[1, 0, 2] = -1
 
     tdip_f = state.transition_dipole_moment
-    # the minus sign accounts for the negative charge, since it is not included in the operators
-    # TODO as soon as PR #190 in adcc is merged: remove minus
-    B = -1.0 * np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + np.transpose(term2))
+    B = np.einsum("abc,a,bc->", epsilon, tdip_f, term1 + np.transpose(term2))
     return B

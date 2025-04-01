@@ -2,9 +2,9 @@
 
 # taken from adcc repository, written by @mfherbst
 
-SOURCE="https://wwwagdreuw.iwr.uni-heidelberg.de/respondo_test_data/0.2.0"
+SOURCE="https://wwwagdreuw.iwr.uni-heidelberg.de/respondo_test_data/0.3.0"
 DATAFILES=(
-	data_0.2.0.tar.gz
+	data_0.3.0.tar.gz
 )
 #
 # -----

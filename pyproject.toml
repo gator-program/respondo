@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.7"
 # Declare any run-time dependencies that should be installed with the package.
 dependencies = [
-    "adcc >= 0.15.16",
+    "adcc >= 0.16.0",
     "numpy >= 1.14",
 ]
 keywords=[
@@ -85,4 +85,5 @@ line-length = 100
 
 [tool.ruff]
 line-length = 100
-ignore = ["E741"]
+lint.ignore = ["E741"]
+lint.extend-select = ["E501"]
