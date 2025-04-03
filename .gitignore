@@ -146,5 +146,4 @@ static
 .idea
 .vscode
 *.zarr
-*.tar.gz
 *.dat
